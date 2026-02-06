@@ -86,6 +86,7 @@ export const useAuthStore = create<AuthState>()(
 
                     // Use redirect for mobile browsers (Safari/Chrome block popups)
                     if (isMobileBrowser()) {
+                        console.log('Mobile detected, using redirect auth');
                         await signInWithRedirect(auth, provider);
                         // Page will redirect, no need to handle result here
                         return;
@@ -116,17 +117,31 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
 
-            // Called on app load to check for redirect result
+            // Called on app load to check for redirect result (from _layout.tsx)
             checkRedirectResult: async () => {
-                if (!isMobileBrowser()) return;
+                // Only check on mobile browsers
+                if (!isMobileBrowser()) {
+                    set({ isLoading: false });
+                    return;
+                }
+
+                console.log('Checking for redirect result...');
+                set({ isLoading: true });
 
                 try {
                     const { auth, getRedirectResult } = await import('../utils/firebaseConfig');
-                    if (!auth) return;
+                    if (!auth) {
+                        console.log('No auth available');
+                        set({ isLoading: false });
+                        return;
+                    }
 
                     const result = await getRedirectResult(auth);
+                    console.log('Redirect result:', result);
+
                     if (result?.user) {
                         const user = result.user;
+                        console.log('User authenticated via redirect:', user.email);
                         set({
                             user: {
                                 id: user.uid,
@@ -138,9 +153,13 @@ export const useAuthStore = create<AuthState>()(
                             isAuthenticated: true,
                             isLoading: false,
                         });
+                    } else {
+                        console.log('No redirect result found');
+                        set({ isLoading: false });
                     }
                 } catch (error) {
                     console.error("Redirect result error:", error);
+                    set({ isLoading: false });
                 }
             },
 
@@ -156,9 +175,8 @@ export const useAuthStore = create<AuthState>()(
             name: 'chess-kids-auth',
             storage: createJSONStorage(() => AsyncStorage),
             onRehydrateStorage: () => (state) => {
-                state?.setLoading(false);
-                // Check for redirect result on rehydration
-                state?.checkRedirectResult();
+                // Don't set loading to false here - let _layout.tsx handle it after checking redirect
+                // This prevents race conditions with redirect auth
             },
         }
     )

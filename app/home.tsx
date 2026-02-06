@@ -60,23 +60,20 @@ export default function HomeScreen() {
     };
 
     // Responsive grid - fill screen space
-    const horizontalPadding = 32;
-    const gap = 16;
-    const headerHeight = 80;
+    const isMobile = width < 600;
+    const horizontalPadding = isMobile ? 16 : 32;
+    const gap = isMobile ? 12 : 16;
 
     // Calculate grid based on available space
     const availableWidth = width - horizontalPadding;
-    const availableHeight = height - headerHeight - 60; // 60 for safe margins
 
-    // Determine optimal columns (2-6) based on width
-    const minCardWidth = 140;
+    // Determine optimal columns based on width
+    const minCardWidth = isMobile ? 120 : 140;
     const numColumns = Math.max(2, Math.min(6, Math.floor((availableWidth + gap) / (minCardWidth + gap))));
-    const numRows = Math.ceil(PIECES.length / numColumns);
 
-    // Calculate card size to fill available space
+    // Calculate card size - use aspect ratio instead of fixed height for mobile
     const cardWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
-    const maxCardHeight = (availableHeight - (gap * (numRows - 1))) / numRows;
-    const cardHeight = Math.min(cardWidth * 1.3, maxCardHeight);
+    const cardHeight = cardWidth * 1.25; // Fixed aspect ratio for consistency
 
     const firstName = user?.name?.split(' ')[0] || 'Champion';
 
