@@ -27,10 +27,10 @@ import { BlurView } from 'expo-blur';
 const PIECES: { type: PieceType; label: string; image?: any; emoji: string }[] = [
     { type: 'pawn', label: 'A Brave Pawn', image: require('../assets/pieces/pawn.png'), emoji: '♟️' },
     { type: 'knight', label: 'A Majestic Knight', image: require('../assets/pieces/knight.png'), emoji: '♞' },
-    { type: 'bishop', label: 'A Wise Bishop', emoji: '♝' },
-    { type: 'rook', label: 'A Strong Rook', emoji: '♜' },
-    { type: 'queen', label: 'A Mighty Queen', emoji: '👑' },
-    { type: 'king', label: 'A Royal King', emoji: '🤴' },
+    { type: 'bishop', label: 'A Wise Bishop', image: require('../assets/pieces/bishop.png'), emoji: '♝' },
+    { type: 'rook', label: 'A Strong Rook', image: require('../assets/pieces/rook.png'), emoji: '♜' },
+    { type: 'queen', label: 'A Mighty Queen', image: require('../assets/pieces/queen.png'), emoji: '👑' },
+    { type: 'king', label: 'A Royal King', image: require('../assets/pieces/king.png'), emoji: '🤴' },
 ];
 
 export default function HomeScreen() {
