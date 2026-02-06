@@ -88,13 +88,7 @@ export default function LoginScreen() {
                             <Text style={styles.googleButtonText}>Continue with Google</Text>
                         </Pressable>
 
-                        <Pressable
-                            style={({ pressed }) => [styles.button, styles.appleButton, pressed && styles.buttonPressed]}
-                            onPress={() => alert("Apple Sign-In coming soon!")}
-                        >
-                            <Ionicons name="logo-apple" size={24} color="white" style={{ marginRight: 10 }} />
-                            <Text style={styles.appleButtonText}>Continue with Apple</Text>
-                        </Pressable>
+
 
                         <View style={styles.divider}>
                             <View style={styles.line} />
@@ -197,15 +191,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: colors.text,
     },
-    appleButton: {
-        backgroundColor: '#000',
-        marginTop: spacing.sm,
-    },
-    appleButtonText: {
-        fontSize: fontSize.md,
-        fontWeight: '600',
-        color: 'white',
-    },
+
     guestButton: {
         backgroundColor: 'rgba(255,255,255,0.15)',
         borderWidth: 1,
