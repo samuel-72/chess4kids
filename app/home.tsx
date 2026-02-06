@@ -131,14 +131,12 @@ export default function HomeScreen() {
                                     >
                                         {/* Liquid Glass Card */}
                                         <View style={styles.glassCard}>
-                                            {/* Piece Image with gradient backdrop */}
-                                            <View style={styles.imageWrapper}>
-                                                <Image
-                                                    source={piece.image}
-                                                    style={[styles.pieceImage, { width: cardWidth * 0.55, height: cardWidth * 0.55 }]}
-                                                    resizeMode="contain"
-                                                />
-                                            </View>
+                                            {/* Piece Image */}
+                                            <Image
+                                                source={piece.image}
+                                                style={[styles.pieceImage, { width: cardWidth * 0.7, height: cardWidth * 0.7 }]}
+                                                resizeMode="contain"
+                                            />
 
                                             {/* Label */}
                                             <Text style={styles.pieceLabel}>{piece.label}</Text>
@@ -284,14 +282,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 20,
     },
-    imageWrapper: {
-        borderRadius: 100,
-        padding: 8,
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        marginBottom: 8,
-    },
     pieceImage: {
         zIndex: 1,
+        borderRadius: 12,
     },
     pieceLabel: {
         fontSize: 17,
