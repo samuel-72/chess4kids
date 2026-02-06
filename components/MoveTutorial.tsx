@@ -18,7 +18,7 @@ const CELL_SIZE = 25;
 const GRID_SIZE = 8;
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 
-// Piece Emojis
+// Piece Emojis (Black - for enemies)
 const PIECE_EMOJIS: Record<PieceType | 'pawn_enemy', string> = {
     pawn: '♟',
     pawn_enemy: '♟',
@@ -27,6 +27,16 @@ const PIECE_EMOJIS: Record<PieceType | 'pawn_enemy', string> = {
     rook: '♜',
     queen: '♛',
     king: '♚',
+};
+
+// White Piece Emojis (for hero/player)
+const WHITE_PIECE_EMOJIS: Record<PieceType, string> = {
+    pawn: '♙',
+    knight: '♘',
+    bishop: '♗',
+    rook: '♖',
+    queen: '♕',
+    king: '♔',
 };
 
 type ScenarioType = {
@@ -387,7 +397,7 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
                             {/* Hero Piece (White) - Use Animated.View wrapper for reliable animation */}
                             <Animated.View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }, animatedHeroStyle]}>
                                 <Text style={styles.heroPiece}>
-                                    {piece === 'pawn' ? '♙' : (transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece])}
+                                    {transformedPiece ? WHITE_PIECE_EMOJIS[transformedPiece] : WHITE_PIECE_EMOJIS[piece]}
                                 </Text>
                             </Animated.View>
                         </View>
@@ -438,9 +448,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 20,
     },
-    pieceEmoji: { fontSize: 18 }, // Smaller for 25px cells
-    heroPiece: { fontSize: 18, color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }, // White piece
-    enemyPiece: { fontSize: 18, color: '#000' }, // Black enemy piece
+    pieceEmoji: { fontSize: 20 }, // Slightly larger for visibility
+    heroPiece: { fontSize: 20, color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }, // Solid white piece
+    enemyPiece: { fontSize: 20, color: '#000', textShadowColor: 'rgba(255,255,255,0.5)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 1 }, // Black piece
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
