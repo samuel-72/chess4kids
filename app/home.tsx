@@ -21,7 +21,6 @@ import { router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import { useProgressStore, PieceType } from '../stores/progressStore';
 import { getLessonsForPiece } from '../utils/lessonGenerator';
-import { BlurView } from 'expo-blur';
 
 const PIECES: { type: PieceType; label: string; image: any }[] = [
     { type: 'pawn', label: 'Pawn', image: require('../assets/pieces/pawn.png') },
@@ -35,7 +34,7 @@ const PIECES: { type: PieceType; label: string; image: any }[] = [
 export default function HomeScreen() {
     const { user, logout } = useAuthStore();
     const { totalXP, level, lessonsCompleted, resetPieceProgress } = useProgressStore();
-    const { width, height } = useWindowDimensions();
+    const { width } = useWindowDimensions();
     const [showSettings, setShowSettings] = useState(false);
 
     const handlePiecePress = (piece: PieceType) => {
@@ -63,25 +62,23 @@ export default function HomeScreen() {
     // Responsive grid
     const isWide = width > 700;
     const numColumns = isWide ? 3 : 2;
-    const cardSize = isWide ? (width - 120) / 3 : (width - 60) / 2;
+    const cardSize = isWide ? (width - 120) / 3 : (width - 56) / 2;
 
     const firstName = user?.name?.split(' ')[0] || 'Champion';
 
     return (
         <View style={styles.container}>
-            {/* Soft gradient background */}
+            {/* Vibrant gradient background */}
             <LinearGradient
-                colors={['#0f0c29', '#302b63', '#24243e']}
+                colors={['#1a2a6c', '#b21f1f', '#fdbb2d']}
                 style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
             />
 
-            {/* Subtle animated orbs for depth */}
-            <View style={[styles.orb, styles.orb1]} />
-            <View style={[styles.orb, styles.orb2]} />
-
             <SafeAreaView style={styles.safeArea}>
-                {/* Minimal Header */}
-                <Animated.View entering={FadeIn.duration(600)} style={styles.header}>
+                {/* Header */}
+                <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
                     <View>
                         <Text style={styles.greeting}>Hello, {firstName}</Text>
                         <Text style={styles.stats}>Level {level} · {totalXP} XP</Text>
@@ -109,7 +106,7 @@ export default function HomeScreen() {
                                 <Animated.View
                                     key={piece.type}
                                     entering={FadeInDown.delay(index * 80).springify()}
-                                    style={[styles.cardWrapper, { width: cardSize, height: cardSize * 1.1 }]}
+                                    style={[styles.cardWrapper, { width: cardSize, height: cardSize * 1.15 }]}
                                 >
                                     <Pressable
                                         onPress={() => handlePiecePress(piece.type)}
@@ -118,20 +115,23 @@ export default function HomeScreen() {
                                             pressed && styles.cardPressed
                                         ]}
                                     >
-                                        {/* Glass effect */}
+                                        {/* Liquid Glass Card */}
                                         <View style={styles.glassCard}>
+                                            {/* Inner glow */}
+                                            <View style={styles.glassInner} />
+
                                             {/* Piece Image */}
                                             <Image
                                                 source={piece.image}
-                                                style={[styles.pieceImage, { width: cardSize * 0.55, height: cardSize * 0.55 }]}
+                                                style={[styles.pieceImage, { width: cardSize * 0.5, height: cardSize * 0.5 }]}
                                                 resizeMode="contain"
                                             />
 
                                             {/* Label */}
                                             <Text style={styles.pieceLabel}>{piece.label}</Text>
 
-                                            {/* Progress indicator */}
-                                            <View style={styles.progressContainer}>
+                                            {/* Progress */}
+                                            <View style={styles.progressRow}>
                                                 <View style={styles.progressTrack}>
                                                     <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
                                                 </View>
@@ -146,7 +146,7 @@ export default function HomeScreen() {
                 </ScrollView>
             </SafeAreaView>
 
-            {/* Settings Modal - Frosted Glass Style */}
+            {/* Settings Modal */}
             <Modal visible={showSettings} transparent animationType="fade">
                 <View style={styles.modalOverlay}>
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowSettings(false)} />
@@ -188,27 +188,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0f0c29',
-    },
-    // Decorative orbs for depth
-    orb: {
-        position: 'absolute',
-        borderRadius: 999,
-        opacity: 0.15,
-    },
-    orb1: {
-        width: 400,
-        height: 400,
-        backgroundColor: '#667eea',
-        top: -100,
-        right: -100,
-    },
-    orb2: {
-        width: 300,
-        height: 300,
-        backgroundColor: '#764ba2',
-        bottom: 100,
-        left: -80,
     },
     safeArea: {
         flex: 1,
@@ -220,34 +199,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 24,
         paddingTop: Platform.OS === 'android' ? 48 : 16,
-        paddingBottom: 16,
+        paddingBottom: 12,
     },
     greeting: {
         fontSize: 28,
         fontWeight: '700',
         color: '#fff',
         letterSpacing: -0.5,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     stats: {
         fontSize: 15,
-        color: 'rgba(255,255,255,0.6)',
-        fontWeight: '500',
+        color: 'rgba(255,255,255,0.85)',
+        fontWeight: '600',
         marginTop: 2,
     },
     settingsBtn: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        backdropFilter: 'blur(10px)',
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
     },
     settingsIcon: {
         fontSize: 20,
     },
     // Grid
     gridContainer: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 16,
         paddingBottom: 40,
         alignItems: 'center',
     },
@@ -258,86 +243,101 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     cardWrapper: {
-        marginBottom: 8,
+        marginBottom: 4,
     },
     card: {
         flex: 1,
-        borderRadius: 24,
+        borderRadius: 28,
         overflow: 'hidden',
     },
     cardPressed: {
         transform: [{ scale: 0.96 }],
-        opacity: 0.9,
+        opacity: 0.95,
     },
+    // Liquid Glass Effect
     glassCard: {
         flex: 1,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 24,
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.15)',
+        backgroundColor: 'rgba(255,255,255,0.18)',
+        borderRadius: 28,
+        borderWidth: 1.5,
+        borderColor: 'rgba(255,255,255,0.4)',
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 16,
         paddingHorizontal: 12,
-        // Glass blur effect via shadow
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.2,
-        shadowRadius: 24,
+        overflow: 'hidden',
+        // Glow shadow
+        shadowColor: '#fff',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.15,
+        shadowRadius: 20,
+    },
+    glassInner: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        borderRadius: 28,
     },
     pieceImage: {
-        marginBottom: 8,
+        marginBottom: 10,
+        zIndex: 1,
     },
     pieceLabel: {
-        fontSize: 16,
-        fontWeight: '600',
+        fontSize: 17,
+        fontWeight: '700',
         color: '#fff',
-        marginBottom: 8,
+        marginBottom: 10,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
+        zIndex: 1,
     },
-    progressContainer: {
+    progressRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 10,
+        zIndex: 1,
     },
     progressTrack: {
-        width: 60,
-        height: 4,
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 2,
+        width: 50,
+        height: 5,
+        backgroundColor: 'rgba(255,255,255,0.3)',
+        borderRadius: 3,
         overflow: 'hidden',
     },
     progressFill: {
         height: '100%',
         backgroundColor: '#4ade80',
-        borderRadius: 2,
+        borderRadius: 3,
     },
     progressText: {
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.5)',
-        fontWeight: '500',
+        fontSize: 13,
+        color: 'rgba(255,255,255,0.8)',
+        fontWeight: '600',
     },
     // Modal
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.6)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
     },
     modalCard: {
-        backgroundColor: 'rgba(30,30,50,0.95)',
+        backgroundColor: 'rgba(255,255,255,0.95)',
         borderRadius: 28,
         padding: 24,
         width: '100%',
         maxWidth: 380,
         maxHeight: '80%',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.1)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 30,
     },
     modalTitle: {
-        fontSize: 22,
+        fontSize: 24,
         fontWeight: '700',
-        color: '#fff',
+        color: '#1a1a2e',
         textAlign: 'center',
         marginBottom: 20,
     },
@@ -347,56 +347,56 @@ const styles = StyleSheet.create({
     resetRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 14,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        borderRadius: 16,
         padding: 12,
         marginBottom: 8,
     },
     resetImage: {
-        width: 36,
-        height: 36,
+        width: 40,
+        height: 40,
         marginRight: 12,
     },
     resetLabel: {
         flex: 1,
-        fontSize: 15,
-        color: '#fff',
-        fontWeight: '500',
+        fontSize: 16,
+        color: '#1a1a2e',
+        fontWeight: '600',
     },
     resetCount: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.5)',
+        fontSize: 14,
+        color: '#666',
         marginRight: 12,
         backgroundColor: 'rgba(74,222,128,0.2)',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 8,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: 10,
     },
     resetIcon: {
-        fontSize: 18,
-        color: 'rgba(255,255,255,0.4)',
+        fontSize: 20,
+        color: '#999',
     },
     logoutBtn: {
-        backgroundColor: 'rgba(239,68,68,0.2)',
-        borderRadius: 14,
-        padding: 14,
+        backgroundColor: '#fee2e2',
+        borderRadius: 16,
+        padding: 16,
         marginTop: 16,
         alignItems: 'center',
     },
     logoutText: {
-        fontSize: 15,
-        color: '#ef4444',
+        fontSize: 16,
+        color: '#dc2626',
         fontWeight: '600',
     },
     closeBtn: {
-        backgroundColor: 'rgba(255,255,255,0.1)',
-        borderRadius: 14,
-        padding: 14,
+        backgroundColor: '#1a2a6c',
+        borderRadius: 16,
+        padding: 16,
         marginTop: 8,
         alignItems: 'center',
     },
     closeText: {
-        fontSize: 15,
+        fontSize: 16,
         color: '#fff',
         fontWeight: '600',
     },
