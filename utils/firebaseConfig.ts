@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 
 // Specific Firebase Project configuration
 const firebaseConfig = {
@@ -31,4 +31,4 @@ try {
     console.warn("Firebase initialization failed. Auth will be mocked.", e);
 }
 
-export { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect };
+export { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult };

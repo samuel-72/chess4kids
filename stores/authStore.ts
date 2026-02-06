@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 export interface User {
     id: string;
@@ -20,13 +21,22 @@ interface AuthState {
     login: (user: User) => void;
     loginAsGuest: () => void;
     loginWithGoogle: () => Promise<void>;
+    checkRedirectResult: () => Promise<void>;
     logout: () => void;
     setLoading: (loading: boolean) => void;
 }
 
+// Helper to detect mobile browser
+const isMobileBrowser = (): boolean => {
+    if (Platform.OS !== 'web') return false;
+    if (typeof window === 'undefined') return false;
+    const ua = navigator.userAgent || navigator.vendor;
+    return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua.toLowerCase());
+};
+
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             user: null,
             isAuthenticated: false,
             isLoading: true,
@@ -52,11 +62,9 @@ export const useAuthStore = create<AuthState>()(
             loginWithGoogle: async () => {
                 set({ isLoading: true });
                 try {
-                    // Dynamic import to avoid crash if firebase isn't configured
-                    const { auth, GoogleAuthProvider, signInWithPopup } = await import('../utils/firebaseConfig');
+                    const { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } = await import('../utils/firebaseConfig');
 
                     if (!auth) {
-                        // Fallback to mock if no config
                         console.log("Using Mock Auth (No Firebase Config)");
                         setTimeout(() => {
                             set({
@@ -75,6 +83,15 @@ export const useAuthStore = create<AuthState>()(
                     }
 
                     const provider = new GoogleAuthProvider();
+
+                    // Use redirect for mobile browsers (Safari/Chrome block popups)
+                    if (isMobileBrowser()) {
+                        await signInWithRedirect(auth, provider);
+                        // Page will redirect, no need to handle result here
+                        return;
+                    }
+
+                    // Use popup for desktop
                     const result = await signInWithPopup(auth, provider);
                     const user = result.user;
 
@@ -92,7 +109,38 @@ export const useAuthStore = create<AuthState>()(
                 } catch (error: any) {
                     console.error("Login Error:", error);
                     set({ isLoading: false });
-                    alert("Login failed: " + error.message);
+                    // Only alert if not a redirect (redirect will navigate away)
+                    if (!error.message?.includes('redirect')) {
+                        alert("Login failed: " + error.message);
+                    }
+                }
+            },
+
+            // Called on app load to check for redirect result
+            checkRedirectResult: async () => {
+                if (!isMobileBrowser()) return;
+
+                try {
+                    const { auth, getRedirectResult } = await import('../utils/firebaseConfig');
+                    if (!auth) return;
+
+                    const result = await getRedirectResult(auth);
+                    if (result?.user) {
+                        const user = result.user;
+                        set({
+                            user: {
+                                id: user.uid,
+                                name: user.displayName || 'Champion',
+                                email: user.email || '',
+                                provider: 'google',
+                                createdAt: Date.now()
+                            },
+                            isAuthenticated: true,
+                            isLoading: false,
+                        });
+                    }
+                } catch (error) {
+                    console.error("Redirect result error:", error);
                 }
             },
 
@@ -109,6 +157,8 @@ export const useAuthStore = create<AuthState>()(
             storage: createJSONStorage(() => AsyncStorage),
             onRehydrateStorage: () => (state) => {
                 state?.setLoading(false);
+                // Check for redirect result on rehydration
+                state?.checkRedirectResult();
             },
         }
     )
