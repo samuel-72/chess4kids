@@ -15,7 +15,7 @@ import { borderRadius } from '../constants/theme';
 
 // Reduced size to fit side-by-side on all screens
 // 30 * 5 = 150. Two boards = 300 + gap. Safe for 320px screens.
-const CELL_SIZE = 30;
+const CELL_SIZE = 40;
 const GRID_SIZE = 5;
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 
@@ -277,14 +277,14 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
 
                     {/* Hero Piece */}
                     <View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }]}>
-                        <Animated.Text style={[styles.pieceEmoji, animatedHeroStyle]}>
+                        <Animated.Text style={[styles.pieceEmoji, { color: 'black' }, animatedHeroStyle]}>
                             {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
                         </Animated.Text>
                     </View>
                 </View>
             </View>
             {/* Small label for the specific board if needed, but main text is below */}
-            {/* <Text style={styles.caption}>{activeScenario.title}</Text> */}
+            <Text style={styles.caption}>{activeScenario.title}</Text>
         </View>
     );
 }
@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 20,
     },
-    pieceEmoji: { fontSize: 24 }, // Adjusted for smaller cell
+    pieceEmoji: { fontSize: 32 }, // Adjusted for smaller cell
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
@@ -332,8 +332,9 @@ const styles = StyleSheet.create({
         borderRadius: CELL_SIZE / 2, // Circular marker
     },
     caption: {
-        color: '#aaa',
-        fontSize: 10,
-        marginTop: 4
+        color: '#fff',
+        fontSize: 16,
+        marginTop: 8,
+        fontWeight: 'bold',
     }
 });

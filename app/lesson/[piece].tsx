@@ -97,7 +97,7 @@ export default function LessonScreen() {
     const [surpriseReward, setSurpriseReward] = useState(SURPRISE_REWARDS[0]);
     const [message, setMessage] = useState<string>('');
     const [messageType, setMessageType] = useState<'success' | 'hint' | 'error'>('hint');
-    const [dynamicHint, setDynamicHint] = useState<string>('');
+
 
     const [timer, setTimer] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -307,19 +307,17 @@ export default function LessonScreen() {
                                 <MoveTutorial
                                     piece={piece}
                                     variant="movement"
-                                    onScenarioChange={setDynamicHint}
                                 />
                                 <MoveTutorial
                                     piece={piece}
                                     variant="promotion"
-                                /* No callback, keep main hint from movement loop */
                                 />
                             </View>
                         ) : (
                             <MoveTutorial piece={piece} />
                         )}
                         <Text style={styles.tutorialText}>
-                            {dynamicHint || pieceInfo.hint}
+                            {pieceInfo.hint}
                         </Text>
                     </View>
 
@@ -441,6 +439,12 @@ const styles = StyleSheet.create({
     modeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white, marginBottom: spacing.sm },
 
     tutorialContainer: { alignItems: 'center', marginVertical: spacing.xl },
+    pawnTutorials: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 20,
+    },
     tutorialText: { color: colors.white, fontSize: fontSize.md, marginTop: spacing.md, textAlign: 'center', maxWidth: 300 },
 
     modeButtonsContainer: { gap: spacing.lg, width: '100%', maxWidth: 300 },
