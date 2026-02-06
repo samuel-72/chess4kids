@@ -42,6 +42,26 @@ If you want to contribute or build the app yourself:
     npx expo start
     ```
 
+## 🌐 Web Distribution
+
+### Option 1: GitHub Pages (Automated)
+1.  Go to **Settings > Pages** in your repository.
+2.  Under **Source**, select **GitHub Actions**.
+3.  The pre-configured workflow (`.github/workflows/deploy.yml`) will automatically verify and deploy your app whenever you push to `master`.
+
+### Option 2: Manual Deploy
+Run this command to build and deploy from your computer:
+```bash
+npm run deploy
+```
+This puts the website at: `https://samuel-72.github.io/chess4kids`
+
+### Option 3: Export Static Files
+```bash
+npx expo export -p web
+```
+Upload the `dist/` folder to Vercel, Netlify, or anywhere else!
+
 ### How to Build the App (APK)
 To generate the installable Android file:
 
