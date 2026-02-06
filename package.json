@@ -1,7 +1,7 @@
 {
   "name": "chess-kids",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "expo-router/entry",
   "homepage": "https://samuel-72.github.io/chess4kids",
   "scripts": {
     "start": "expo start",
