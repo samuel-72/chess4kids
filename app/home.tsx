@@ -41,8 +41,8 @@ export default function HomeScreen() {
         router.push(`/lesson/${piece}`);
     };
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         router.replace('/login');
     };
 

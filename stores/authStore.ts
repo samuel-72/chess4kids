@@ -22,7 +22,7 @@ interface AuthState {
     login: (user: User) => void;
     loginAsGuest: () => void;
     loginWithGoogle: () => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     setLoading: (loading: boolean) => void;
     initAuthListener: () => Promise<void>;
 }
