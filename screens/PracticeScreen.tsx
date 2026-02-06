@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fontSize, borderRadius } from '../constants/theme';
 import { getValidMoves, Position, positionToSquare, squareToPosition } from '../utils/chessLogic';
-import { PieceType } from '../stores/progressStore';
+import { PieceType, useProgressStore } from '../stores/progressStore';
 import CelebrationOverlay from '../components/CelebrationOverlay';
 import { SoundEffects } from '../utils/soundEffects';
 
@@ -19,13 +19,18 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 360);
 const SQUARE_SIZE = BOARD_SIZE / 8;
 
-// Fun reward emojis
-const REWARD_EMOJIS = [
-    '🍫', '🍬', '🍭', '🧁', '🍪', // Sweets
-    '🦕', '🦖', '🦄', '🐴', '🐎', // Animals
-    '🐕', '🐶', '🐱', '🐈', '🐰', // Pets
-    '⭐', '🌟', '✨', '🎉', '🎊', // Celebration
-    '🌈', '💎', '👑', '🏆', '🎁', // Rewards
+// Fun surprise rewards when completing a lesson
+const SURPRISE_REWARDS = [
+    { emoji: '🍫', name: 'Chocolate Bar!' },
+    { emoji: '🦄', name: 'Magical Unicorn!' },
+    { emoji: '🦕', name: 'Friendly Dinosaur!' },
+    { emoji: '🐶', name: 'Cute Puppy!' },
+    { emoji: '🐱', name: 'Adorable Kitten!' },
+    { emoji: '🎁', name: 'Mystery Gift!' },
+    { emoji: '👑', name: 'Golden Crown!' },
+    { emoji: '💎', name: 'Shiny Diamond!' },
+    { emoji: '🌈', name: 'Rainbow!' },
+    { emoji: '🍭', name: 'Sweet Lollipop!' },
 ];
 
 interface PracticeScreenProps {
@@ -34,139 +39,139 @@ interface PracticeScreenProps {
     onComplete?: () => void;
 }
 
-interface RewardParticle {
-    id: number;
-    emoji: string;
-    x: number;
-    y: number;
-    animation: Animated.Value;
-    scale: Animated.Value;
-}
-
 export default function PracticeScreen({ piece, onBack, onComplete }: PracticeScreenProps) {
-    // Knight starts in a good position for practice
-    const [knightPosition, setKnightPosition] = useState<Position>({ row: 4, col: 4 });
-    const [targetPosition, setTargetPosition] = useState<Position>({ row: 6, col: 5 });
+    // Knight starts in a random position for variety
+    const getRandomPosition = (): Position => ({
+        row: 2 + Math.floor(Math.random() * 4), // rows 2-5
+        col: 2 + Math.floor(Math.random() * 4), // cols 2-5
+    });
+
+    const [knightPosition, setKnightPosition] = useState<Position>(getRandomPosition);
     const [validMoves, setValidMoves] = useState<string[]>([]);
+    const [foundMoves, setFoundMoves] = useState<Set<string>>(new Set());
+    const [wrongGuesses, setWrongGuesses] = useState<Set<string>>(new Set());
     const [score, setScore] = useState(0);
-    const [level, setLevel] = useState(1);
+    const [round, setRound] = useState(1);
     const [showCelebration, setShowCelebration] = useState(false);
-    const [rewardParticles, setRewardParticles] = useState<RewardParticle[]>([]);
+    const [lessonComplete, setLessonComplete] = useState(false);
+    const [surpriseReward, setSurpriseReward] = useState(SURPRISE_REWARDS[0]);
     const [message, setMessage] = useState<string>('');
     const [messageType, setMessageType] = useState<'success' | 'hint' | 'error'>('hint');
+    const startTime = useRef(Date.now());
+
+    const completeLesson = useProgressStore(state => state.completeLesson);
 
     // Calculate valid moves whenever knight position changes
     useEffect(() => {
         const square = positionToSquare(knightPosition);
         const moves = getValidMoves('knight', square);
         setValidMoves(moves);
+        setFoundMoves(new Set());
+        setWrongGuesses(new Set());
     }, [knightPosition]);
 
-    // Generate a new target position
-    const generateNewTarget = useCallback(() => {
-        const square = positionToSquare(knightPosition);
-        const moves = getValidMoves('knight', square);
-        if (moves.length > 0) {
-            const randomMove = moves[Math.floor(Math.random() * moves.length)];
-            const newTarget = squareToPosition(randomMove);
-            setTargetPosition(newTarget);
-        }
-    }, [knightPosition]);
-
-    // Initialize target
+    // Check if all moves found
     useEffect(() => {
-        generateNewTarget();
-    }, []);
-
-    // Spawn reward particles
-    const spawnRewards = (x: number, y: number) => {
-        const newParticles: RewardParticle[] = [];
-        const numParticles = 8 + Math.floor(Math.random() * 5);
-
-        for (let i = 0; i < numParticles; i++) {
-            const particle: RewardParticle = {
-                id: Date.now() + i,
-                emoji: REWARD_EMOJIS[Math.floor(Math.random() * REWARD_EMOJIS.length)],
-                x: x + (Math.random() - 0.5) * 100,
-                y: y + (Math.random() - 0.5) * 100,
-                animation: new Animated.Value(0),
-                scale: new Animated.Value(0),
-            };
-            newParticles.push(particle);
+        if (validMoves.length > 0 && foundMoves.size === validMoves.length) {
+            // ALL MOVES FOUND! 🎉
+            handleRoundComplete();
         }
+    }, [foundMoves, validMoves]);
 
-        setRewardParticles(prev => [...prev, ...newParticles]);
+    const handleRoundComplete = () => {
+        setShowCelebration(true);
+        SoundEffects.celebrate();
 
-        // Animate particles
-        newParticles.forEach((particle, index) => {
-            Animated.sequence([
-                Animated.delay(index * 50),
-                Animated.parallel([
-                    Animated.spring(particle.scale, {
-                        toValue: 1,
-                        friction: 4,
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(particle.animation, {
-                        toValue: 1,
-                        duration: 1500,
-                        useNativeDriver: true,
-                    }),
-                ]),
-            ]).start(() => {
-                // Remove particle after animation
-                setRewardParticles(prev => prev.filter(p => p.id !== particle.id));
-            });
-        });
+        // Pick a random surprise reward
+        const reward = SURPRISE_REWARDS[Math.floor(Math.random() * SURPRISE_REWARDS.length)];
+        setSurpriseReward(reward);
+
+        // After 3 rounds, complete the lesson
+        if (round >= 3) {
+            setTimeout(() => {
+                setShowCelebration(false);
+                setLessonComplete(true);
+
+                // Track in progress store
+                const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
+                const stars = wrongGuesses.size === 0 ? 3 : wrongGuesses.size < 3 ? 2 : 1;
+
+                completeLesson({
+                    lessonId: `knight-moves-${Date.now()}`,
+                    pieceType: piece,
+                    completedAt: Date.now(),
+                    score: stars,
+                    timeSpent,
+                });
+            }, 2000);
+        } else {
+            // Move to next round
+            setTimeout(() => {
+                setShowCelebration(false);
+                setRound(prev => prev + 1);
+                setKnightPosition(getRandomPosition());
+                setMessage(`Round ${round + 1}! Find all the squares!`);
+                setMessageType('hint');
+                setTimeout(() => setMessage(''), 2000);
+            }, 2000);
+        }
     };
 
     // Handle square tap
     const handleSquareTap = (row: number, col: number) => {
         const targetSquare = positionToSquare({ row, col });
 
+        // Don't allow tapping the knight's current position
+        if (knightPosition.row === row && knightPosition.col === col) {
+            return;
+        }
+
+        // Already found this move
+        if (foundMoves.has(targetSquare)) {
+            setMessage('Already found! 👀');
+            setMessageType('hint');
+            setTimeout(() => setMessage(''), 1500);
+            return;
+        }
+
+        // Already marked as wrong
+        if (wrongGuesses.has(targetSquare)) {
+            setMessage('Oops, not there! Try again');
+            setMessageType('error');
+            setTimeout(() => setMessage(''), 1500);
+            return;
+        }
+
         // Check if this is a valid move
         if (validMoves.includes(targetSquare)) {
-            // Move the knight
-            setKnightPosition({ row, col });
+            // CORRECT! ✓
+            const newFound = new Set(foundMoves);
+            newFound.add(targetSquare);
+            setFoundMoves(newFound);
 
-            // Check if we hit the target
-            if (row === targetPosition.row && col === targetPosition.col) {
-                // SUCCESS! 🎉
-                setScore(prev => prev + 10 * level);
-                setShowCelebration(true);
-                setMessage('Amazing! 🎉');
+            const pointsEarned = 10;
+            setScore(prev => prev + pointsEarned);
+
+            SoundEffects.move();
+
+            const remaining = validMoves.length - newFound.size;
+            if (remaining > 0) {
+                setMessage(`+${pointsEarned}! ${remaining} more to go! 🎯`);
                 setMessageType('success');
-
-                // Play celebration sound
-                SoundEffects.celebrate();
-
-                // Spawn rewards at target position
-                const rewardX = col * SQUARE_SIZE + SQUARE_SIZE / 2;
-                const rewardY = (7 - row) * SQUARE_SIZE + SQUARE_SIZE / 2;
-                spawnRewards(rewardX, rewardY);
-
-                // Generate new target after a short delay
-                setTimeout(() => {
-                    setShowCelebration(false);
-                    setLevel(prev => prev + 1);
-                    generateNewTarget();
-                    setMessage('');
-                }, 1500);
             } else {
-                setMessage('Good move! 👍');
-                setMessageType('hint');
-                SoundEffects.move();
-                // Generate new target from new position
-                setTimeout(() => {
-                    generateNewTarget();
-                    setMessage('');
-                }, 500);
+                setMessage('You found them all! 🎉');
+                setMessageType('success');
             }
+            setTimeout(() => setMessage(''), 1500);
         } else {
-            // Invalid move
-            setMessage('Knights move in an L-shape! ♞');
-            setMessageType('error');
+            // WRONG! ✗
+            const newWrong = new Set(wrongGuesses);
+            newWrong.add(targetSquare);
+            setWrongGuesses(newWrong);
+
             SoundEffects.error();
+            setMessage('Not quite! Knights move in L-shapes ♞');
+            setMessageType('error');
             setTimeout(() => setMessage(''), 2000);
         }
     };
@@ -175,9 +180,9 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
     const renderSquare = (row: number, col: number) => {
         const isLight = (row + col) % 2 === 1;
         const squareName = positionToSquare({ row, col });
-        const isValidMove = validMoves.includes(squareName);
         const isKnightHere = knightPosition.row === row && knightPosition.col === col;
-        const isTarget = targetPosition.row === row && targetPosition.col === col;
+        const isFound = foundMoves.has(squareName);
+        const isWrong = wrongGuesses.has(squareName);
 
         return (
             <Pressable
@@ -185,8 +190,8 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                 style={({ pressed }) => [
                     styles.square,
                     isLight ? styles.lightSquare : styles.darkSquare,
-                    isValidMove && styles.validMoveSquare,
-                    isTarget && styles.targetSquare,
+                    isFound && styles.foundSquare,
+                    isWrong && styles.wrongSquare,
                     pressed && styles.pressedSquare,
                 ]}
                 onPress={() => handleSquareTap(row, col)}
@@ -194,17 +199,48 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                 {isKnightHere && (
                     <Text style={styles.pieceEmoji}>♞</Text>
                 )}
-                {isTarget && !isKnightHere && (
-                    <Text style={styles.targetEmoji}>
-                        {REWARD_EMOJIS[level % REWARD_EMOJIS.length]}
-                    </Text>
+                {isFound && !isKnightHere && (
+                    <Text style={styles.checkEmoji}>✓</Text>
                 )}
-                {isValidMove && !isKnightHere && !isTarget && (
-                    <View style={styles.validMoveIndicator} />
+                {isWrong && (
+                    <Text style={styles.wrongEmoji}>✗</Text>
                 )}
             </Pressable>
         );
     };
+
+    // Lesson Complete Screen
+    if (lessonComplete) {
+        return (
+            <LinearGradient
+                colors={['#6B4EE6', '#9C27B0', '#E91E63']}
+                style={styles.container}
+            >
+                <SafeAreaView style={styles.completeContainer}>
+                    <Text style={styles.completeEmoji}>{surpriseReward.emoji}</Text>
+                    <Text style={styles.completeTitle}>Lesson Complete!</Text>
+                    <Text style={styles.completeSubtitle}>
+                        You earned a {surpriseReward.name}
+                    </Text>
+
+                    <View style={styles.statsContainer}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{score}</Text>
+                            <Text style={styles.statLabel}>Points</Text>
+                        </View>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{3 - Math.min(wrongGuesses.size, 2)}⭐</Text>
+                            <Text style={styles.statLabel}>Stars</Text>
+                        </View>
+                    </View>
+
+                    <Pressable style={styles.doneButton} onPress={onBack}>
+                        <Text style={styles.doneButtonText}>🏠 Back to Home</Text>
+                    </Pressable>
+                </SafeAreaView>
+            </LinearGradient>
+        );
+    }
 
     return (
         <LinearGradient
@@ -221,17 +257,20 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                         <Text style={styles.scoreLabel}>Score</Text>
                         <Text style={styles.scoreValue}>{score}</Text>
                     </View>
-                    <View style={styles.levelContainer}>
-                        <Text style={styles.levelLabel}>Level</Text>
-                        <Text style={styles.levelValue}>{level}</Text>
+                    <View style={styles.roundContainer}>
+                        <Text style={styles.roundLabel}>Round</Text>
+                        <Text style={styles.roundValue}>{round}/3</Text>
                     </View>
                 </View>
 
                 {/* Instructions */}
                 <View style={styles.instructionsContainer}>
-                    <Text style={styles.instructionsTitle}>♞ Knight Practice</Text>
+                    <Text style={styles.instructionsTitle}>♞ Find the Moves!</Text>
                     <Text style={styles.instructionsText}>
-                        Move the Knight to collect the treats!
+                        Tap ALL squares the Knight can move to
+                    </Text>
+                    <Text style={styles.progressText}>
+                        Found: {foundMoves.size}/{validMoves.length}
                     </Text>
                 </View>
 
@@ -259,54 +298,20 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                             );
                         })}
                     </View>
-
-                    {/* Reward particles */}
-                    {rewardParticles.map(particle => (
-                        <Animated.Text
-                            key={particle.id}
-                            style={[
-                                styles.rewardParticle,
-                                {
-                                    left: particle.x,
-                                    top: particle.y,
-                                    opacity: particle.animation.interpolate({
-                                        inputRange: [0, 0.3, 1],
-                                        outputRange: [0, 1, 0],
-                                    }),
-                                    transform: [
-                                        { scale: particle.scale },
-                                        {
-                                            translateY: particle.animation.interpolate({
-                                                inputRange: [0, 1],
-                                                outputRange: [0, -150],
-                                            }),
-                                        },
-                                    ],
-                                },
-                            ]}
-                        >
-                            {particle.emoji}
-                        </Animated.Text>
-                    ))}
                 </View>
 
-                {/* Legend */}
-                <View style={styles.legend}>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: 'rgba(76, 175, 80, 0.5)' }]} />
-                        <Text style={styles.legendText}>Valid moves</Text>
-                    </View>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#FFD700' }]} />
-                        <Text style={styles.legendText}>Target</Text>
-                    </View>
+                {/* Hint */}
+                <View style={styles.hintContainer}>
+                    <Text style={styles.hintText}>
+                        💡 Hint: Knights move in an L-shape (2+1 squares)
+                    </Text>
                 </View>
             </SafeAreaView>
 
             {/* Celebration Overlay */}
             <CelebrationOverlay
                 visible={showCelebration}
-                message="You got it! 🌟"
+                message={`${surpriseReward.emoji} ${surpriseReward.name}`}
             />
         </LinearGradient>
     );
@@ -351,25 +356,25 @@ const styles = StyleSheet.create({
         fontSize: fontSize.xl,
         fontWeight: 'bold',
     },
-    levelContainer: {
+    roundContainer: {
         alignItems: 'center',
         backgroundColor: 'rgba(255, 255, 255, 0.2)',
         paddingHorizontal: spacing.lg,
         paddingVertical: spacing.sm,
         borderRadius: borderRadius.md,
     },
-    levelLabel: {
+    roundLabel: {
         color: 'rgba(255, 255, 255, 0.8)',
         fontSize: fontSize.xs,
     },
-    levelValue: {
+    roundValue: {
         color: colors.white,
         fontSize: fontSize.xl,
         fontWeight: 'bold',
     },
     instructionsContainer: {
         alignItems: 'center',
-        marginBottom: spacing.md,
+        marginBottom: spacing.sm,
     },
     instructionsTitle: {
         color: colors.white,
@@ -381,6 +386,12 @@ const styles = StyleSheet.create({
         color: 'rgba(255, 255, 255, 0.9)',
         fontSize: fontSize.md,
         textAlign: 'center',
+    },
+    progressText: {
+        color: colors.white,
+        fontSize: fontSize.lg,
+        fontWeight: 'bold',
+        marginTop: spacing.xs,
     },
     messageContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -431,11 +442,11 @@ const styles = StyleSheet.create({
     darkSquare: {
         backgroundColor: '#B58863',
     },
-    validMoveSquare: {
-        backgroundColor: 'rgba(76, 175, 80, 0.5)',
+    foundSquare: {
+        backgroundColor: '#4CAF50',
     },
-    targetSquare: {
-        backgroundColor: '#FFD700',
+    wrongSquare: {
+        backgroundColor: '#F44336',
     },
     pressedSquare: {
         opacity: 0.7,
@@ -443,37 +454,79 @@ const styles = StyleSheet.create({
     pieceEmoji: {
         fontSize: SQUARE_SIZE * 0.7,
     },
-    targetEmoji: {
-        fontSize: SQUARE_SIZE * 0.6,
+    checkEmoji: {
+        fontSize: SQUARE_SIZE * 0.5,
+        color: colors.white,
+        fontWeight: 'bold',
     },
-    validMoveIndicator: {
-        width: SQUARE_SIZE * 0.3,
-        height: SQUARE_SIZE * 0.3,
-        borderRadius: SQUARE_SIZE * 0.15,
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    wrongEmoji: {
+        fontSize: SQUARE_SIZE * 0.5,
+        color: colors.white,
+        fontWeight: 'bold',
     },
-    rewardParticle: {
-        position: 'absolute',
-        fontSize: 32,
-    },
-    legend: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: spacing.lg,
+    hintContainer: {
+        alignItems: 'center',
         marginTop: spacing.lg,
     },
-    legendItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: spacing.xs,
-    },
-    legendDot: {
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-    },
-    legendText: {
-        color: colors.white,
+    hintText: {
+        color: 'rgba(255, 255, 255, 0.8)',
         fontSize: fontSize.sm,
+    },
+    // Lesson Complete styles
+    completeContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.xl,
+    },
+    completeEmoji: {
+        fontSize: 100,
+        marginBottom: spacing.lg,
+    },
+    completeTitle: {
+        fontSize: fontSize.giant,
+        fontWeight: 'bold',
+        color: colors.white,
+        textAlign: 'center',
+    },
+    completeSubtitle: {
+        fontSize: fontSize.lg,
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginTop: spacing.sm,
+        textAlign: 'center',
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        gap: spacing.lg,
+        marginTop: spacing.xl,
+    },
+    statBox: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: spacing.xl,
+        paddingVertical: spacing.lg,
+        borderRadius: borderRadius.lg,
+        alignItems: 'center',
+    },
+    statValue: {
+        fontSize: fontSize.giant,
+        fontWeight: 'bold',
+        color: colors.white,
+    },
+    statLabel: {
+        fontSize: fontSize.md,
+        color: 'rgba(255, 255, 255, 0.8)',
+        marginTop: spacing.xs,
+    },
+    doneButton: {
+        backgroundColor: colors.white,
+        paddingVertical: spacing.md,
+        paddingHorizontal: spacing.xl,
+        borderRadius: borderRadius.lg,
+        marginTop: spacing.xl,
+    },
+    doneButtonText: {
+        fontSize: fontSize.lg,
+        fontWeight: '600',
+        color: '#6B4EE6',
     },
 });
