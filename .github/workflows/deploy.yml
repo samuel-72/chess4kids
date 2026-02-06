@@ -33,8 +33,10 @@ jobs:
       - name: Build Web
         run: npx expo export -p web
 
-      - name: Ensure .nojekyll exists
-        run: touch dist/.nojekyll
+      - name: Fix Web Script Module Type
+        run: |
+          touch dist/.nojekyll
+          sed -i 's/<script src=/<script type="module" src=/g' dist/index.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
