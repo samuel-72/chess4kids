@@ -97,6 +97,7 @@ export default function LessonScreen() {
     const [surpriseReward, setSurpriseReward] = useState(SURPRISE_REWARDS[0]);
     const [message, setMessage] = useState<string>('');
     const [messageType, setMessageType] = useState<'success' | 'hint' | 'error'>('hint');
+    const [dynamicHint, setDynamicHint] = useState<string>('');
 
     const [timer, setTimer] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -298,17 +299,28 @@ export default function LessonScreen() {
 
                     <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name}</Text>
 
+
                     {/* Animated Tutorial */}
                     <View style={styles.tutorialContainer}>
                         {piece === 'pawn' ? (
                             <View style={styles.pawnTutorials}>
-                                <MoveTutorial piece={piece} variant="movement" />
-                                <MoveTutorial piece={piece} variant="promotion" />
+                                <MoveTutorial
+                                    piece={piece}
+                                    variant="movement"
+                                    onScenarioChange={setDynamicHint}
+                                />
+                                <MoveTutorial
+                                    piece={piece}
+                                    variant="promotion"
+                                /* No callback, keep main hint from movement loop */
+                                />
                             </View>
                         ) : (
                             <MoveTutorial piece={piece} />
                         )}
-                        <Text style={styles.tutorialText}>{pieceInfo.hint}</Text>
+                        <Text style={styles.tutorialText}>
+                            {dynamicHint || pieceInfo.hint}
+                        </Text>
                     </View>
 
                     <View style={styles.modeButtonsContainer}>
