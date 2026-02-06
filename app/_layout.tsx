@@ -22,7 +22,9 @@ export default function RootLayout() {
                     html, body, #root { 
                         height: 100%; 
                         width: 100%;
-                        overflow: hidden; 
+                        /* Allow scrolling if content overflows */
+                        overflow: auto; 
+                        -webkit-overflow-scrolling: touch;
                         margin: 0;
                         padding: 0;
                         background-color: ${colors.background};

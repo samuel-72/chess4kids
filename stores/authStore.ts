@@ -87,14 +87,9 @@ export const useAuthStore = create<AuthState>()(
 
                     const provider = new GoogleAuthProvider();
 
-                    // Use redirect for mobile browsers
-                    if (isMobileBrowser()) {
-                        console.log('Mobile detected, using redirect auth');
-                        await signInWithRedirect(auth, provider);
-                        return;
-                    }
-
-                    // Use popup for desktop
+                    // Use popup for both mobile and desktop
+                    // Redirect is flaky on some deployments; popup is more reliable if triggered by user action
+                    console.log('Using Popup Auth for stability');
                     const result = await signInWithPopup(auth, provider);
                     const user = result.user;
 
