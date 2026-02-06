@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Redirect } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { colors } from '../constants/theme';
@@ -7,19 +7,21 @@ import { colors } from '../constants/theme';
 export default function Index() {
     const { isAuthenticated, isLoading } = useAuthStore();
 
-    if (isLoading) {
-        return (
-            <View style={styles.container}>
-                <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-        );
-    }
+    useEffect(() => {
+        if (!isLoading) {
+            if (isAuthenticated) {
+                router.replace('/home');
+            } else {
+                router.replace('/login');
+            }
+        }
+    }, [isAuthenticated, isLoading]);
 
-    if (isAuthenticated) {
-        return <Redirect href="/home" />;
-    }
-
-    return <Redirect href="/login" />;
+    return (
+        <View style={styles.container}>
+            <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({

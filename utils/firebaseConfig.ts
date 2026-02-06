@@ -1,5 +1,14 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    setPersistence,
+    browserLocalPersistence,
+    onAuthStateChanged
+} from "firebase/auth";
 
 // Specific Firebase Project configuration
 const firebaseConfig = {
@@ -27,8 +36,22 @@ try {
         app = getApp();
     }
     auth = getAuth(app);
+
+    // Set persistence to local (survives browser restarts)
+    // This is critical for mobile redirect auth
+    setPersistence(auth, browserLocalPersistence).catch(error => {
+        console.error("Auth Persistence Error:", error);
+    });
+
 } catch (e) {
     console.warn("Firebase initialization failed. Auth will be mocked.", e);
 }
 
-export { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult };
+export {
+    auth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    onAuthStateChanged
+};

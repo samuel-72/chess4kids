@@ -16,14 +16,15 @@ interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    initialized: boolean;
 
     // Actions
     login: (user: User) => void;
     loginAsGuest: () => void;
     loginWithGoogle: () => Promise<void>;
-    checkRedirectResult: () => Promise<void>;
     logout: () => void;
     setLoading: (loading: boolean) => void;
+    initAuthListener: () => Promise<void>;
 }
 
 // Helper to detect mobile browser
@@ -40,6 +41,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isAuthenticated: false,
             isLoading: true,
+            initialized: false,
 
             login: (user: User) => set({
                 user,
@@ -66,6 +68,7 @@ export const useAuthStore = create<AuthState>()(
 
                     if (!auth) {
                         console.log("Using Mock Auth (No Firebase Config)");
+                        // Mock fallback
                         setTimeout(() => {
                             set({
                                 user: {
@@ -84,11 +87,10 @@ export const useAuthStore = create<AuthState>()(
 
                     const provider = new GoogleAuthProvider();
 
-                    // Use redirect for mobile browsers (Safari/Chrome block popups)
+                    // Use redirect for mobile browsers
                     if (isMobileBrowser()) {
                         console.log('Mobile detected, using redirect auth');
                         await signInWithRedirect(auth, provider);
-                        // Page will redirect, no need to handle result here
                         return;
                     }
 
@@ -110,74 +112,99 @@ export const useAuthStore = create<AuthState>()(
                 } catch (error: any) {
                     console.error("Login Error:", error);
                     set({ isLoading: false });
-                    // Only alert if not a redirect (redirect will navigate away)
                     if (!error.message?.includes('redirect')) {
                         alert("Login failed: " + error.message);
                     }
                 }
             },
 
-            // Called on app load to check for redirect result (from _layout.tsx)
-            checkRedirectResult: async () => {
-                // Only check on mobile browsers
-                if (!isMobileBrowser()) {
-                    set({ isLoading: false });
-                    return;
-                }
+            // Initialize Firebase Auth Listener - The source of truth
+            initAuthListener: async () => {
+                if (get().initialized) return;
 
-                console.log('Checking for redirect result...');
-                set({ isLoading: true });
-
+                console.log('Initializing Auth Listener...');
                 try {
-                    const { auth, getRedirectResult } = await import('../utils/firebaseConfig');
+                    const { auth, onAuthStateChanged, getRedirectResult } = await import('../utils/firebaseConfig');
+
                     if (!auth) {
-                        console.log('No auth available');
-                        set({ isLoading: false });
+                        set({ isLoading: false, initialized: true });
                         return;
                     }
 
-                    const result = await getRedirectResult(auth);
-                    console.log('Redirect result:', result);
-
-                    if (result?.user) {
-                        const user = result.user;
-                        console.log('User authenticated via redirect:', user.email);
-                        set({
-                            user: {
-                                id: user.uid,
-                                name: user.displayName || 'Champion',
-                                email: user.email || '',
-                                provider: 'google',
-                                createdAt: Date.now()
-                            },
-                            isAuthenticated: true,
-                            isLoading: false,
-                        });
-                    } else {
-                        console.log('No redirect result found');
-                        set({ isLoading: false });
+                    // Check for redirect result first (handles the immediate return from Google)
+                    // This creates the standard auth state change event if successful
+                    if (isMobileBrowser()) {
+                        try {
+                            await getRedirectResult(auth);
+                            console.log('Redirect result check complete');
+                        } catch (e) {
+                            console.warn('Redirect check failed', e);
+                        }
                     }
+
+                    // Listen for state changes (handles persistence and redirect results)
+                    onAuthStateChanged(auth, (firebaseUser) => {
+                        console.log('Auth State Changed:', firebaseUser?.email);
+                        if (firebaseUser) {
+                            set({
+                                user: {
+                                    id: firebaseUser.uid,
+                                    name: firebaseUser.displayName || 'Champion',
+                                    email: firebaseUser.email || '',
+                                    provider: 'google',
+                                    createdAt: Date.now()
+                                },
+                                isAuthenticated: true,
+                                isLoading: false,
+                            });
+                        } else {
+                            // Only clear if we were previously authenticated via firebase
+                            // Don't clear guest users or if we're just starting up
+                            const currentUser = get().user;
+                            if (currentUser?.provider === 'google') {
+                                set({
+                                    user: null,
+                                    isAuthenticated: false,
+                                    isLoading: false,
+                                });
+                            } else {
+                                // If guest or null, just stop loading
+                                set({ isLoading: false });
+                            }
+                        }
+                    });
+
+                    set({ initialized: true });
                 } catch (error) {
-                    console.error("Redirect result error:", error);
-                    set({ isLoading: false });
+                    console.error('Auth Listener Error:', error);
+                    set({ isLoading: false, initialized: true });
                 }
             },
 
-            logout: () => set({
-                user: null,
-                isAuthenticated: false,
-                isLoading: false
-            }),
+            logout: async () => {
+                set({ isLoading: true });
+                try {
+                    const { auth } = await import('../utils/firebaseConfig');
+                    if (auth) {
+                        await auth.signOut();
+                    }
+                } catch (e) {
+                    console.error('Logout error', e);
+                }
+
+                set({
+                    user: null,
+                    isAuthenticated: false,
+                    isLoading: false
+                });
+            },
 
             setLoading: (loading: boolean) => set({ isLoading: loading }),
         }),
         {
             name: 'chess-kids-auth',
             storage: createJSONStorage(() => AsyncStorage),
-            onRehydrateStorage: () => (state) => {
-                // Don't set loading to false here - let _layout.tsx handle it after checking redirect
-                // This prevents race conditions with redirect auth
-            },
+            // We manually handle init in _layout.tsx
         }
     )
 );
