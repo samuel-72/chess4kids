@@ -59,10 +59,16 @@ export default function HomeScreen() {
         }
     };
 
-    // Responsive grid
-    const isWide = width > 700;
-    const numColumns = isWide ? 3 : 2;
-    const cardSize = isWide ? (width - 120) / 3 : (width - 56) / 2;
+    // Responsive grid - calculate columns based on comfortable card size
+    const minCardWidth = 150;
+    const maxCardWidth = 200;
+    const horizontalPadding = 32;
+    const gap = 16;
+
+    // Calculate how many cards fit comfortably
+    const availableWidth = width - horizontalPadding;
+    const numColumns = Math.max(2, Math.min(6, Math.floor((availableWidth + gap) / (minCardWidth + gap))));
+    const cardWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
 
     const firstName = user?.name?.split(' ')[0] || 'Champion';
 
@@ -96,7 +102,7 @@ export default function HomeScreen() {
                     contentContainerStyle={styles.gridContainer}
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={[styles.grid, { maxWidth: isWide ? 900 : 500 }]}>
+                    <View style={[styles.grid, { gap }]}>
                         {PIECES.map((piece, index) => {
                             const completed = lessonsCompleted[piece.type]?.length || 0;
                             const total = getLessonsForPiece(piece.type).length;
@@ -106,7 +112,7 @@ export default function HomeScreen() {
                                 <Animated.View
                                     key={piece.type}
                                     entering={FadeInDown.delay(index * 80).springify()}
-                                    style={[styles.cardWrapper, { width: cardSize, height: cardSize * 1.15 }]}
+                                    style={[styles.cardWrapper, { width: cardWidth, height: cardWidth * 1.2 }]}
                                 >
                                     <Pressable
                                         onPress={() => handlePiecePress(piece.type)}
@@ -123,7 +129,7 @@ export default function HomeScreen() {
                                             {/* Piece Image */}
                                             <Image
                                                 source={piece.image}
-                                                style={[styles.pieceImage, { width: cardSize * 0.5, height: cardSize * 0.5 }]}
+                                                style={[styles.pieceImage, { width: cardWidth * 0.5, height: cardWidth * 0.5 }]}
                                                 resizeMode="contain"
                                             />
 
@@ -221,7 +227,6 @@ const styles = StyleSheet.create({
         height: 44,
         borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.2)',
-        backdropFilter: 'blur(10px)',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
