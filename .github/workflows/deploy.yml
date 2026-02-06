@@ -37,6 +37,8 @@ jobs:
         run: |
           touch dist/.nojekyll
           sed -i 's/<script src=/<script type="module" src=/g' dist/index.html
+          # Copy index.html to 404.html for SPA routing on GitHub Pages
+          cp dist/index.html dist/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
