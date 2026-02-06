@@ -177,7 +177,7 @@ const QUEEN_SCENARIOS: ScenarioType[] = [
     },
 ];
 
-// KING SCENARIOS
+// KING SCENARIOS (including castling)
 const KING_SCENARIOS: ScenarioType[] = [
     {
         title: "One Step Any Way! 👑",
@@ -194,6 +194,16 @@ const KING_SCENARIOS: ScenarioType[] = [
         heroStart: { x: 4, y: 4 },
         heroMove: { dx: 1, dy: -1 },
         enemyStart: { x: 5, y: 3 }, // Target
+    },
+    {
+        title: "Short Castling! 🏰",
+        heroStart: { x: 4, y: 7 }, // King on e1
+        heroMove: { dx: 2, dy: 0 }, // King moves to g1
+    },
+    {
+        title: "Long Castling! 🏰",
+        heroStart: { x: 4, y: 7 }, // King on e1
+        heroMove: { dx: -2, dy: 0 }, // King moves to c1
     },
 ];
 
@@ -367,17 +377,17 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
                             {/* Target Highlight */}
                             <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
 
-                            {/* Enemy Piece (White pawn - different from black hero) */}
+                            {/* Enemy Piece (Black pawn - different from white hero) */}
                             {activeScenario.enemyStart && (
                                 <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
-                                    <Text style={[styles.pieceEmoji, styles.enemyPiece]}>♙</Text>
+                                    <Text style={[styles.pieceEmoji, styles.enemyPiece]}>♟</Text>
                                 </Animated.View>
                             )}
 
-                            {/* Hero Piece - Use Animated.View wrapper for reliable animation */}
+                            {/* Hero Piece (White) - Use Animated.View wrapper for reliable animation */}
                             <Animated.View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }, animatedHeroStyle]}>
                                 <Text style={styles.heroPiece}>
-                                    {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
+                                    {piece === 'pawn' ? '♙' : (transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece])}
                                 </Text>
                             </Animated.View>
                         </View>
@@ -429,8 +439,8 @@ const styles = StyleSheet.create({
         zIndex: 20,
     },
     pieceEmoji: { fontSize: 18 }, // Smaller for 25px cells
-    heroPiece: { fontSize: 18, color: '#000' }, // Black pawn, always visible
-    enemyPiece: { fontSize: 18, color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }, // White pawn with shadow
+    heroPiece: { fontSize: 18, color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }, // White piece
+    enemyPiece: { fontSize: 18, color: '#000' }, // Black enemy piece
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,

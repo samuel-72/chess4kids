@@ -27,8 +27,8 @@ import { BlurView } from 'expo-blur';
 const PIECES: { type: PieceType; label: string; image?: any; emoji: string }[] = [
     { type: 'pawn', label: 'A Brave Pawn', image: require('../assets/pieces/pawn.png'), emoji: '♟️' },
     { type: 'knight', label: 'A Majestic Knight', image: require('../assets/pieces/knight.png'), emoji: '♞' },
-    { type: 'bishop', label: 'A Wise Wizard', emoji: '🧙‍♂️' },
-    { type: 'rook', label: 'A Strong Castle', emoji: '🏰' },
+    { type: 'bishop', label: 'A Wise Bishop', emoji: '♝' },
+    { type: 'rook', label: 'A Strong Rook', emoji: '♜' },
     { type: 'queen', label: 'A Mighty Queen', emoji: '👑' },
     { type: 'king', label: 'A Royal King', emoji: '🤴' },
 ];
@@ -51,18 +51,25 @@ export default function HomeScreen() {
     const [showSettings, setShowSettings] = useState(false);
 
     const handleResetPiece = (piece: PieceType, label: string) => {
-        Alert.alert(
-            'Reset Progress',
-            `Are you sure you want to reset all progress for ${label}?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Reset',
-                    style: 'destructive',
-                    onPress: () => resetPieceProgress(piece),
-                },
-            ]
-        );
+        // Use Platform-aware confirmation
+        if (Platform.OS === 'web') {
+            if (window.confirm(`Reset all progress for ${label}?`)) {
+                resetPieceProgress(piece);
+            }
+        } else {
+            Alert.alert(
+                'Reset Progress',
+                `Are you sure you want to reset all progress for ${label}?`,
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Reset',
+                        style: 'destructive',
+                        onPress: () => resetPieceProgress(piece),
+                    },
+                ]
+            );
+        }
     };
 
     // Calculate columns based on width
@@ -153,8 +160,6 @@ export default function HomeScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>⚙️ Settings</Text>
-
-                        <Text style={styles.modalSectionTitle}>Reset Progress Per Piece</Text>
                         <ScrollView style={styles.resetList}>
                             {PIECES.map((piece) => {
                                 const count = lessonsCompleted[piece.type]?.length || 0;
