@@ -1,26 +1,26 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
-    withRepeat,
     withTiming,
     withSequence,
     withDelay,
     Easing,
-    cancelAnimation
+    runOnJS,
+    withSpring
 } from 'react-native-reanimated';
 import { PieceType } from '../stores/progressStore';
-import { colors, borderRadius } from '../constants/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { borderRadius } from '../constants/theme';
 
 const CELL_SIZE = 40;
 const GRID_SIZE = 5;
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 
-// Piece Emojis (matching the lesson screen)
-const PIECE_EMOJIS: Record<PieceType, string> = {
+// Piece Emojis
+const PIECE_EMOJIS: Record<PieceType | 'pawn_enemy', string> = {
     pawn: '♟',
+    pawn_enemy: '♟', // Red/Dark pawn?
     knight: '♞',
     bishop: '♝',
     rook: '♜',
@@ -28,124 +28,174 @@ const PIECE_EMOJIS: Record<PieceType, string> = {
     king: '♚',
 };
 
-// Define moves for the demo (start center)
-// Grid is 0..4. Center is 2,2.
-const CENTER = 2; // (2, 2)
-
-const DEMO_MOVES: Record<PieceType, { dx: number; dy: number; label?: string }[]> = {
-    pawn: [{ dx: 0, dy: -1 }], // Up 1
-    knight: [{ dx: 1, dy: -2 }], // L-shape (Right 1, Up 2)
-    bishop: [{ dx: 2, dy: -2 }], // Diag Up-Right 2
-    rook: [{ dx: 2, dy: 0 }],  // Right 2
-    queen: [{ dx: -2, dy: -2 }], // Diag Up-Left 2
-    king: [{ dx: 1, dy: 0 }],   // Right 1
+type ScenarioType = {
+    title: string;
+    heroStart: { x: number; y: number };
+    heroMove: { dx: number; dy: number };
+    enemyStart?: { x: number; y: number };
+    enemyMove?: { dx: number; dy: number }; // For En Passant
+    transformTo?: PieceType; // For Promotion
 };
 
-const Arrow = ({ start, end }: { start: { x: number, y: number }, end: { x: number, y: number } }) => {
-    // Calculate geometry
+// PAWN SCENARIOS
+const PAWN_SCENARIOS: ScenarioType[] = [
+    {
+        title: "First Move: 2 Steps!",
+        heroStart: { x: 2, y: 3 }, // Near bottom
+        heroMove: { dx: 0, dy: -2 },
+    },
+    {
+        title: "Regular Move: 1 Step",
+        heroStart: { x: 2, y: 2 },
+        heroMove: { dx: 0, dy: -1 },
+    },
+    {
+        title: "Capture Diagonally!",
+        heroStart: { x: 2, y: 2 },
+        heroMove: { dx: 1, dy: -1 },
+        enemyStart: { x: 3, y: 1 }, // Target
+    },
+    {
+        title: "En Passant (Special!)",
+        heroStart: { x: 1, y: 1 }, // White Pawn at Rank 5 (visual row 1)
+        heroMove: { dx: 1, dy: -1 }, // Captures behind
+        enemyStart: { x: 2, y: 0 }, // Black starts at Rank 7 (visual row 0)
+        enemyMove: { dx: 0, dy: 2 } // Moves 2 squares to Rank 5
+    }
+];
+
+const PROMOTION_SCENARIO: ScenarioType = {
+    title: "Promotion!",
+    heroStart: { x: 2, y: 1 }, // Near end
+    heroMove: { dx: 0, dy: -1 }, // Moves to end
+    transformTo: 'queen'
+};
+
+// Generic Moves for other pieces
+const GENERIC_MOVES: Record<string, ScenarioType[]> = {
+    knight: [{ title: "L-Shape Jump", heroStart: { x: 2, y: 2 }, heroMove: { dx: 1, dy: -2 } }],
+    bishop: [{ title: "Diagonal Zoom", heroStart: { x: 1, y: 3 }, heroMove: { dx: 2, dy: -2 } }],
+    rook: [{ title: "Straight Lines", heroStart: { x: 1, y: 2 }, heroMove: { dx: 2, dy: 0 } }],
+    queen: [{ title: "Any Direction", heroStart: { x: 2, y: 3 }, heroMove: { dx: -2, dy: -2 } }],
+    king: [{ title: "One Step", heroStart: { x: 2, y: 2 }, heroMove: { dx: 1, dy: 0 } }],
+};
+
+const Arrow = ({ start, end, color = 'rgba(255, 170, 0, 0.6)' }: { start: { x: number, y: number }, end: { x: number, y: number }, color?: string }) => {
     const dx = (end.x - start.x) * CELL_SIZE;
     const dy = (end.y - start.y) * CELL_SIZE;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx) * (180 / Math.PI); // Degrees
-
-    // Adjust length slightly so arrow head doesn't overlap center too much
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     const arrowLength = Math.max(0, distance - 15);
 
     return (
-        <View
-            style={{
-                position: 'absolute',
-                left: start.x * CELL_SIZE + CELL_SIZE / 2,
-                top: start.y * CELL_SIZE + CELL_SIZE / 2,
-                width: distance, // Full distance container
-                height: 1, // Minimal height
-                transform: [
-                    { translateX: -distance / 2 }, // Center origin fix (React Native transform origin is center)
-                    { translateY: 0 },
-                    { rotate: `${angle}deg` },
-                    { translateX: distance / 2 }, // Push back
-                ],
-                alignItems: 'center', // Align arrow line vertically
-                flexDirection: 'row',
-                zIndex: 10,
-            }}
-        >
-            {/* The Line */}
-            <View style={{
-                width: arrowLength,
-                height: 6,
-                backgroundColor: 'rgba(255, 170, 0, 0.6)',
-                borderRadius: 3,
-            }} />
-
-            {/* The Arrow Head */}
-            <View style={{
-                marginLeft: -8, // Slight overlap
-                width: 0,
-                height: 0,
-                backgroundColor: 'transparent',
-                borderStyle: 'solid',
-                borderLeftWidth: 10,
-                borderRightWidth: 0,
-                borderBottomWidth: 8,
-                borderTopWidth: 8,
-                borderLeftColor: 'rgba(255, 170, 0, 0.8)', // Arrow color
-                borderRightColor: 'transparent',
-                borderBottomColor: 'transparent',
-                borderTopColor: 'transparent',
-            }} />
+        <View style={{
+            position: 'absolute',
+            left: start.x * CELL_SIZE + CELL_SIZE / 2,
+            top: start.y * CELL_SIZE + CELL_SIZE / 2,
+            width: distance,
+            height: 1,
+            transform: [{ translateX: -distance / 2 }, { rotate: `${angle}deg` }, { translateX: distance / 2 }],
+            alignItems: 'center',
+            flexDirection: 'row',
+            zIndex: 10,
+        }}>
+            <View style={{ width: arrowLength, height: 6, backgroundColor: color, borderRadius: 3 }} />
+            <View style={{ marginLeft: -8, width: 0, height: 0, borderLeftWidth: 10, borderBottomWidth: 8, borderTopWidth: 8, borderLeftColor: color, borderRightColor: 'transparent', borderBottomColor: 'transparent', borderTopColor: 'transparent' }} />
         </View>
     );
 };
 
-export function MoveTutorial({ piece }: { piece: PieceType }) {
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const opacity = useSharedValue(0); // Piece starts invisible
+interface MoveTutorialProps {
+    piece: PieceType;
+    variant?: 'movement' | 'promotion';
+}
 
-    // Movement definition
-    const move = DEMO_MOVES[piece]?.[0] || { dx: 0, dy: 0 };
-    const startPos = { x: CENTER, y: CENTER };
-    const endPos = { x: CENTER + move.dx, y: CENTER + move.dy };
+export function MoveTutorial({ piece, variant = 'movement' }: MoveTutorialProps) {
+    const [scenarioIndex, setScenarioIndex] = useState(0);
+
+    // Determine Scenarios
+    const scenarios = useMemo(() => {
+        if (piece === 'pawn') {
+            return variant === 'promotion' ? [PROMOTION_SCENARIO] : PAWN_SCENARIOS;
+        }
+        return GENERIC_MOVES[piece] || GENERIC_MOVES['king'];
+    }, [piece, variant]);
+
+    const activeScenario = scenarios[scenarioIndex];
+
+    // Animation Values
+    const heroX = useSharedValue(0);
+    const heroY = useSharedValue(0);
+    const enemyX = useSharedValue(0);
+    const enemyY = useSharedValue(0);
+    const opacity = useSharedValue(1);
+    const scale = useSharedValue(1); // For promotion pop
+
+    const [transformedPiece, setTransformedPiece] = useState<PieceType | null>(null);
+
+    // Cycle through scenarios
+    useEffect(() => {
+        // Reset state when scenario list changes
+        setScenarioIndex(0);
+    }, [scenarios]);
 
     useEffect(() => {
-        const loopDuration = 2500;
+        if (scenarios.length <= 1) return;
+        const timer = setInterval(() => {
+            setScenarioIndex(prev => (prev + 1) % scenarios.length);
+        }, 4000); // 4 seconds per scenario
+        return () => clearInterval(timer);
+    }, [scenarios.length]);
 
-        // Piece Animation Loop
-        translateX.value = withRepeat(
-            withSequence(
-                withTiming(0, { duration: 0 }), // Reset
-                withDelay(200, withTiming(move.dx * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) })), // Move
-                withTiming(move.dx * CELL_SIZE, { duration: 1000 }), // Wait at end
-                withTiming(0, { duration: 0 }) // Instant reset
-            ),
-            -1
-        );
+    // Run Animation for current Scenario
+    useEffect(() => {
+        // Reset
+        heroX.value = 0;
+        heroY.value = 0;
+        enemyX.value = 0;
+        enemyY.value = 0;
+        opacity.value = 0;
+        scale.value = 1;
+        setTransformedPiece(null);
 
-        translateY.value = withRepeat(
-            withSequence(
-                withTiming(0, { duration: 0 }),
-                withDelay(200, withTiming(move.dy * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) })),
-                withTiming(move.dy * CELL_SIZE, { duration: 1000 }),
-                withTiming(0, { duration: 0 })
-            ),
-            -1
-        );
+        const { heroMove, enemyMove, transformTo } = activeScenario;
 
-        // Opacity/Visibility Loop
-        opacity.value = 1; // Always visible for now, maybe pulse?
+        // Sequence
+        // 1. Fade In
+        opacity.value = withTiming(1, { duration: 500 });
 
-        return () => {
-            cancelAnimation(translateX);
-            cancelAnimation(translateY);
+        // 2. Enemy Move (if En Passant)
+        if (enemyMove) {
+            enemyX.value = withDelay(500, withTiming(enemyMove.dx * CELL_SIZE, { duration: 800 }));
+            enemyY.value = withDelay(500, withTiming(enemyMove.dy * CELL_SIZE, { duration: 800 }));
         }
-    }, [piece, move]);
 
-    const animatedPieceStyle = useAnimatedStyle(() => ({
-        transform: [
-            { translateX: translateX.value },
-            { translateY: translateY.value }
-        ]
+        // 3. Hero Move
+        const moveDelay = enemyMove ? 1500 : 800;
+        heroX.value = withDelay(moveDelay, withTiming(heroMove.dx * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) }));
+        heroY.value = withDelay(moveDelay, withTiming(heroMove.dy * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) }, () => {
+            // 4. Promotion Transform
+            if (transformTo) {
+                runOnJS(setTransformedPiece)(transformTo);
+                scale.value = withSequence(withSpring(1.5), withSpring(1));
+            }
+        }));
+
+        // 5. Fade Out (if loop)
+        if (scenarios.length > 1) {
+            opacity.value = withDelay(3500, withTiming(0, { duration: 500 }));
+        }
+
+    }, [activeScenario]); // Re-run when scenario changes
+
+    const animatedHeroStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: heroX.value }, { translateY: heroY.value }, { scale: scale.value }],
+        opacity: opacity.value
+    }));
+
+    const animatedEnemyStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: enemyX.value }, { translateY: enemyY.value }],
+        opacity: opacity.value
     }));
 
     // Grid Rendering
@@ -154,96 +204,103 @@ export function MoveTutorial({ piece }: { piece: PieceType }) {
         for (let row = 0; row < GRID_SIZE; row++) {
             for (let col = 0; col < GRID_SIZE; col++) {
                 const isLight = (row + col) % 2 === 0;
-                grid.push(
-                    <View
-                        key={`${row}-${col}`}
-                        style={[
-                            styles.square,
-                            isLight ? styles.light : styles.dark
-                        ]}
-                    />
-                );
+                grid.push(<View key={`${row}-${col}`} style={[styles.square, isLight ? styles.light : styles.dark]} />);
             }
         }
         return grid;
     }, []);
 
+    const heroStart = activeScenario.heroStart;
+    const heroEnd = { x: heroStart.x + activeScenario.heroMove.dx, y: heroStart.y + activeScenario.heroMove.dy };
+
+    const enemyStart = activeScenario.enemyStart;
+
     return (
         <View style={styles.container}>
+            <View style={styles.header}>
+                <Text style={styles.scenarioTitle}>{activeScenario.title}</Text>
+            </View>
             <View style={styles.board}>
                 {squares}
 
-                {/* Visual Arrow (Static path indicator) */}
-                <Arrow start={startPos} end={endPos} />
+                {/* Arrow */}
+                <Arrow start={heroStart} end={heroEnd} />
+                {activeScenario.enemyMove && enemyStart && (
+                    <Arrow start={enemyStart} end={{ x: enemyStart.x + activeScenario.enemyMove.dx, y: enemyStart.y + activeScenario.enemyMove.dy }} color="rgba(255, 0, 0, 0.4)" />
+                )}
 
-                {/* Target Highlight (Dot) */}
-                <View style={[styles.targetMarker, {
-                    left: endPos.x * CELL_SIZE,
-                    top: endPos.y * CELL_SIZE
-                }]} />
+                {/* Target Marker */}
+                <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
 
-                {/* The Piece */}
-                <View style={[styles.pieceContainer, {
-                    left: startPos.x * CELL_SIZE,
-                    top: startPos.y * CELL_SIZE,
-                }]}>
-                    <Animated.Text style={[styles.pieceEmoji, animatedPieceStyle]}>
-                        {PIECE_EMOJIS[piece]}
+                {/* Enemy Piece */}
+                {activeScenario.enemyStart && (
+                    <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
+                        <Text style={[styles.pieceEmoji, { color: 'red' }]}>♟️</Text>
+                        <View style={styles.enemyDot} />
+                    </Animated.View>
+                )}
+
+                {/* Hero Piece */}
+                <View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }]}>
+                    <Animated.Text style={[styles.pieceEmoji, animatedHeroStyle]}>
+                        {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
                     </Animated.Text>
                 </View>
-
             </View>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        width: BOARD_SIZE + 4, // Border width included
-        height: BOARD_SIZE + 4,
+    container: { alignItems: 'center', gap: 10 },
+    header: { height: 30, justifyContent: 'center' },
+    scenarioTitle: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+    boardOuter: {
         borderRadius: borderRadius.md,
         overflow: 'hidden',
         borderWidth: 2,
-        borderColor: '#4a4a4a', // Darker border
+        borderColor: '#4a4a4a',
         backgroundColor: '#333',
         elevation: 10,
-        shadowColor: 'black',
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
     },
     board: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         width: BOARD_SIZE,
         height: BOARD_SIZE,
+        borderRadius: borderRadius.md,
+        overflow: 'hidden',
+        borderWidth: 2,
+        borderColor: '#4a4a4a',
     },
-    square: {
-        width: CELL_SIZE,
-        height: CELL_SIZE,
-    },
-    light: { backgroundColor: '#EEEED2' }, // Classic chess colors
+    square: { width: CELL_SIZE, height: CELL_SIZE },
+    light: { backgroundColor: '#EEEED2' },
     dark: { backgroundColor: '#769656' },
-
     pieceContainer: {
         position: 'absolute',
         width: CELL_SIZE,
         height: CELL_SIZE,
         justifyContent: 'center',
         alignItems: 'center',
-        zIndex: 20, // Above arrow
+        zIndex: 20,
     },
-    pieceEmoji: {
-        fontSize: 32,
-        // No text shadow for cleaner look or maybe slight
-    },
-
+    pieceEmoji: { fontSize: 32 },
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
         height: CELL_SIZE,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 255, 0, 0.2)', // Subtle green highlight
+        backgroundColor: 'rgba(0, 255, 0, 0.2)',
         zIndex: 5,
     },
+    enemyDot: {
+        position: 'absolute',
+        bottom: 2,
+        right: 2,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: 'red'
+    }
 });

@@ -300,7 +300,14 @@ export default function LessonScreen() {
 
                     {/* Animated Tutorial */}
                     <View style={styles.tutorialContainer}>
-                        <MoveTutorial piece={piece} />
+                        {piece === 'pawn' ? (
+                            <View style={styles.pawnTutorials}>
+                                <MoveTutorial piece={piece} variant="movement" />
+                                <MoveTutorial piece={piece} variant="promotion" />
+                            </View>
+                        ) : (
+                            <MoveTutorial piece={piece} />
+                        )}
                         <Text style={styles.tutorialText}>{pieceInfo.hint}</Text>
                     </View>
 
