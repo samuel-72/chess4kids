@@ -34,7 +34,7 @@ const PIECES: { type: PieceType; label: string; image: any }[] = [
 export default function HomeScreen() {
     const { user, logout } = useAuthStore();
     const { totalXP, level, lessonsCompleted, resetPieceProgress } = useProgressStore();
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const [showSettings, setShowSettings] = useState(false);
 
     const handlePiecePress = (piece: PieceType) => {
@@ -59,16 +59,24 @@ export default function HomeScreen() {
         }
     };
 
-    // Responsive grid - calculate columns based on comfortable card size
-    const minCardWidth = 150;
-    const maxCardWidth = 200;
+    // Responsive grid - fill screen space
     const horizontalPadding = 32;
     const gap = 16;
+    const headerHeight = 80;
 
-    // Calculate how many cards fit comfortably
+    // Calculate grid based on available space
     const availableWidth = width - horizontalPadding;
+    const availableHeight = height - headerHeight - 60; // 60 for safe margins
+
+    // Determine optimal columns (2-6) based on width
+    const minCardWidth = 140;
     const numColumns = Math.max(2, Math.min(6, Math.floor((availableWidth + gap) / (minCardWidth + gap))));
+    const numRows = Math.ceil(PIECES.length / numColumns);
+
+    // Calculate card size to fill available space
     const cardWidth = (availableWidth - (gap * (numColumns - 1))) / numColumns;
+    const maxCardHeight = (availableHeight - (gap * (numRows - 1))) / numRows;
+    const cardHeight = Math.min(cardWidth * 1.3, maxCardHeight);
 
     const firstName = user?.name?.split(' ')[0] || 'Champion';
 
@@ -112,7 +120,7 @@ export default function HomeScreen() {
                                 <Animated.View
                                     key={piece.type}
                                     entering={FadeInDown.delay(index * 80).springify()}
-                                    style={[styles.cardWrapper, { width: cardWidth, height: cardWidth * 1.2 }]}
+                                    style={[styles.cardWrapper, { width: cardWidth, height: cardHeight }]}
                                 >
                                     <Pressable
                                         onPress={() => handlePiecePress(piece.type)}
@@ -123,15 +131,14 @@ export default function HomeScreen() {
                                     >
                                         {/* Liquid Glass Card */}
                                         <View style={styles.glassCard}>
-                                            {/* Inner glow */}
-                                            <View style={styles.glassInner} />
-
-                                            {/* Piece Image */}
-                                            <Image
-                                                source={piece.image}
-                                                style={[styles.pieceImage, { width: cardWidth * 0.5, height: cardWidth * 0.5 }]}
-                                                resizeMode="contain"
-                                            />
+                                            {/* Piece Image with gradient backdrop */}
+                                            <View style={styles.imageWrapper}>
+                                                <Image
+                                                    source={piece.image}
+                                                    style={[styles.pieceImage, { width: cardWidth * 0.55, height: cardWidth * 0.55 }]}
+                                                    resizeMode="contain"
+                                                />
+                                            </View>
 
                                             {/* Label */}
                                             <Text style={styles.pieceLabel}>{piece.label}</Text>
@@ -277,13 +284,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 20,
     },
-    glassInner: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(255,255,255,0.08)',
-        borderRadius: 28,
+    imageWrapper: {
+        borderRadius: 100,
+        padding: 8,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        marginBottom: 8,
     },
     pieceImage: {
-        marginBottom: 10,
         zIndex: 1,
     },
     pieceLabel: {
