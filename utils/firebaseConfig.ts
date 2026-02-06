@@ -1,16 +1,15 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
 
-// TODO: Replace with your specific Firebase Project configuration from the console
-// Go to https://console.firebase.google.com/
-// Create a project -> Add Web App -> Copy config
+// Specific Firebase Project configuration
 const firebaseConfig = {
-    apiKey: "API_KEY_PLACEHOLDER",
-    authDomain: "PROJECT_ID.firebaseapp.com",
-    projectId: "PROJECT_ID",
-    storageBucket: "PROJECT_ID.firebasestorage.app",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
+    apiKey: "AIzaSyBMNMEX-GOE7U1Kww9o5UMoOB-jOuMOcSs",
+    authDomain: "chess4kids-c6c34.firebaseapp.com",
+    projectId: "chess4kids-c6c34",
+    storageBucket: "chess4kids-c6c34.firebasestorage.app",
+    messagingSenderId: "691437033655",
+    appId: "1:691437033655:web:e7a8df12e7e42c34769532",
+    measurementId: "G-7BEFML8ZVV"
 };
 
 export const isConfigValid = () => {
@@ -29,7 +28,7 @@ try {
     }
     auth = getAuth(app);
 } catch (e) {
-    console.warn("Firebase initialization failed (likely missing config). Auth will be mocked.");
+    console.warn("Firebase initialization failed. Auth will be mocked.", e);
 }
 
 export { auth, GoogleAuthProvider, signInWithPopup, signInWithRedirect };
