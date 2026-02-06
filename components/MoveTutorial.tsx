@@ -44,20 +44,20 @@ type ScenarioType = {
 // Row 1 = rank 7 (black pawn starting row)
 const PAWN_SCENARIOS: ScenarioType[] = [
     {
-        title: "First Move: 2 Steps! 🚀",
+        title: "First Move: 1 or 2 Steps! 🚀",
         heroStart: { x: 3, y: 6 }, // White pawn on rank 2
-        heroMove: { dx: 0, dy: -2 }, // Moves to rank 4
+        heroMove: { dx: 0, dy: -2 }, // Shows 2-step option
     },
     {
-        title: "Regular Move: 1 Step 🚶",
-        heroStart: { x: 4, y: 4 }, // Pawn in middle
+        title: "After First: 1 Step Only 🚶",
+        heroStart: { x: 4, y: 5 }, // Pawn already moved (rank 3)
         heroMove: { dx: 0, dy: -1 },
     },
     {
         title: "Capture Diagonally! ⚔️",
         heroStart: { x: 3, y: 4 },
         heroMove: { dx: 1, dy: -1 },
-        enemyStart: { x: 4, y: 3 }, // Target enemy piece
+        enemyStart: { x: 4, y: 3 }, // Target enemy piece (different color)
     },
     {
         title: "En Passant! 👻",
@@ -257,10 +257,10 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
                     {/* Target Highlight */}
                     <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
 
-                    {/* Enemy Piece (Red for visibility) */}
+                    {/* Enemy Piece (White pawn - different from black hero) */}
                     {activeScenario.enemyStart && (
                         <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
-                            <Text style={[styles.pieceEmoji, { color: '#ef5350' }]}>♟️</Text>
+                            <Text style={[styles.pieceEmoji, styles.enemyPiece]}>♙</Text>
                         </Animated.View>
                     )}
 
@@ -311,6 +311,7 @@ const styles = StyleSheet.create({
     },
     pieceEmoji: { fontSize: 18 }, // Smaller for 25px cells
     heroPiece: { fontSize: 18, color: '#000' }, // Black pawn, always visible
+    enemyPiece: { fontSize: 18, color: '#fff', textShadowColor: '#000', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 1 }, // White pawn with shadow
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
