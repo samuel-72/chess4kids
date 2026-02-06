@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,9 @@ import {
     FlatList,
     Platform,
     useWindowDimensions,
+    Modal,
+    ScrollView,
+    Alert,
 } from 'react-native';
 import Animated, {
     FadeInDown,
@@ -32,7 +35,7 @@ const PIECES: { type: PieceType; label: string; image?: any; emoji: string }[] =
 
 export default function HomeScreen() {
     const { user, logout } = useAuthStore();
-    const { totalXP, level, streak, lessonsCompleted } = useProgressStore();
+    const { totalXP, level, streak, lessonsCompleted, resetPieceProgress } = useProgressStore();
     const { width } = useWindowDimensions();
 
     const handlePiecePress = (piece: PieceType) => {
@@ -42,6 +45,24 @@ export default function HomeScreen() {
     const handleLogout = () => {
         logout();
         router.replace('/login');
+    };
+
+    // Settings modal state
+    const [showSettings, setShowSettings] = useState(false);
+
+    const handleResetPiece = (piece: PieceType, label: string) => {
+        Alert.alert(
+            'Reset Progress',
+            `Are you sure you want to reset all progress for ${label}?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Reset',
+                    style: 'destructive',
+                    onPress: () => resetPieceProgress(piece),
+                },
+            ]
+        );
     };
 
     // Calculate columns based on width
@@ -105,8 +126,8 @@ export default function HomeScreen() {
                         <Text style={styles.greeting}>Hi, {user?.name || 'Champion'}!</Text>
                         <Text style={styles.subGreeting}>Level {level} • {totalXP} XP</Text>
                     </View>
-                    <Pressable onPress={handleLogout} style={styles.logoutButton}>
-                        <Text style={styles.logoutText}>🚪 Log Out</Text>
+                    <Pressable onPress={() => setShowSettings(true)} style={styles.settingsButton}>
+                        <Text style={styles.settingsIcon}>⚙️</Text>
                     </Pressable>
                 </View>
 
@@ -126,6 +147,43 @@ export default function HomeScreen() {
                     }
                 />
             </SafeAreaView>
+
+            {/* Settings Modal */}
+            <Modal visible={showSettings} transparent animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>⚙️ Settings</Text>
+
+                        <Text style={styles.modalSectionTitle}>Reset Progress Per Piece</Text>
+                        <ScrollView style={styles.resetList}>
+                            {PIECES.map((piece) => {
+                                const count = lessonsCompleted[piece.type]?.length || 0;
+                                return (
+                                    <Pressable
+                                        key={piece.type}
+                                        style={styles.resetRow}
+                                        onPress={() => handleResetPiece(piece.type, piece.label)}
+                                    >
+                                        <Text style={styles.resetPieceLabel}>{piece.emoji} {piece.label}</Text>
+                                        <View style={styles.resetBadge}>
+                                            <Text style={styles.resetBadgeText}>{count} done</Text>
+                                        </View>
+                                        <Text style={styles.resetBtn}>🗑️</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </ScrollView>
+
+                        <Pressable style={styles.logoutRow} onPress={handleLogout}>
+                            <Text style={styles.logoutRowText}>🚪 Log Out</Text>
+                        </Pressable>
+
+                        <Pressable style={styles.closeButton} onPress={() => setShowSettings(false)}>
+                            <Text style={styles.closeButtonText}>Close</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -251,5 +309,100 @@ const styles = StyleSheet.create({
     progressText: {
         fontSize: fontSize.xs,
         color: 'rgba(255,255,255,0.7)',
+    },
+    // Settings button (replaces logout button in header)
+    settingsButton: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    settingsIcon: {
+        fontSize: 24,
+    },
+    // Modal styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: spacing.lg,
+    },
+    modalContent: {
+        backgroundColor: '#1a2a6c',
+        borderRadius: borderRadius.xl,
+        padding: spacing.lg,
+        width: '100%',
+        maxWidth: 400,
+        maxHeight: '80%',
+    },
+    modalTitle: {
+        fontSize: fontSize.xl,
+        fontWeight: 'bold',
+        color: colors.white,
+        textAlign: 'center',
+        marginBottom: spacing.lg,
+    },
+    modalSectionTitle: {
+        fontSize: fontSize.md,
+        fontWeight: '600',
+        color: 'rgba(255,255,255,0.8)',
+        marginBottom: spacing.md,
+    },
+    resetList: {
+        maxHeight: 300,
+    },
+    resetRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginBottom: spacing.sm,
+    },
+    resetPieceLabel: {
+        flex: 1,
+        fontSize: fontSize.sm,
+        color: colors.white,
+    },
+    resetBadge: {
+        backgroundColor: 'rgba(76,175,80,0.3)',
+        borderRadius: 12,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        marginRight: spacing.sm,
+    },
+    resetBadgeText: {
+        fontSize: fontSize.xs,
+        color: '#4CAF50',
+    },
+    resetBtn: {
+        fontSize: 20,
+    },
+    logoutRow: {
+        backgroundColor: 'rgba(255,87,51,0.2)',
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginTop: spacing.md,
+        alignItems: 'center',
+    },
+    logoutRowText: {
+        fontSize: fontSize.md,
+        color: '#ff5733',
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        backgroundColor: colors.white,
+        borderRadius: borderRadius.md,
+        padding: spacing.md,
+        marginTop: spacing.md,
+        alignItems: 'center',
+    },
+    closeButtonText: {
+        fontSize: fontSize.md,
+        color: '#1a2a6c',
+        fontWeight: 'bold',
     },
 });

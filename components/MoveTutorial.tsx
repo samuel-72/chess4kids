@@ -343,33 +343,52 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
 
     return (
         <View style={styles.container}>
-            {/* Board */}
-            <View style={styles.boardOuter}>
-                <View style={styles.board}>
-                    {squares}
+            {/* Board with labels */}
+            <View style={styles.boardWithLabels}>
+                {/* Rank labels (8 at top, 1 at bottom - white starts at 1) */}
+                <View style={styles.rankLabels}>
+                    {[8, 7, 6, 5, 4, 3, 2, 1].map((rank) => (
+                        <Text key={rank} style={styles.labelText}>{rank}</Text>
+                    ))}
+                </View>
 
-                    {/* Arrow (Static path) */}
-                    <Arrow start={heroStart} end={heroEnd} />
-                    {activeScenario.enemyMove && enemyStart && (
-                        <Arrow start={enemyStart} end={{ x: enemyStart.x + activeScenario.enemyMove.dx, y: enemyStart.y + activeScenario.enemyMove.dy }} color="rgba(255, 0, 0, 0.4)" />
-                    )}
+                <View>
+                    {/* Board */}
+                    <View style={styles.boardOuter}>
+                        <View style={styles.board}>
+                            {squares}
 
-                    {/* Target Highlight */}
-                    <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
+                            {/* Arrow (Static path) */}
+                            <Arrow start={heroStart} end={heroEnd} />
+                            {activeScenario.enemyMove && enemyStart && (
+                                <Arrow start={enemyStart} end={{ x: enemyStart.x + activeScenario.enemyMove.dx, y: enemyStart.y + activeScenario.enemyMove.dy }} color="rgba(255, 0, 0, 0.4)" />
+                            )}
 
-                    {/* Enemy Piece (White pawn - different from black hero) */}
-                    {activeScenario.enemyStart && (
-                        <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
-                            <Text style={[styles.pieceEmoji, styles.enemyPiece]}>♙</Text>
-                        </Animated.View>
-                    )}
+                            {/* Target Highlight */}
+                            <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
 
-                    {/* Hero Piece - Use Animated.View wrapper for reliable animation */}
-                    <Animated.View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }, animatedHeroStyle]}>
-                        <Text style={styles.heroPiece}>
-                            {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
-                        </Text>
-                    </Animated.View>
+                            {/* Enemy Piece (White pawn - different from black hero) */}
+                            {activeScenario.enemyStart && (
+                                <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
+                                    <Text style={[styles.pieceEmoji, styles.enemyPiece]}>♙</Text>
+                                </Animated.View>
+                            )}
+
+                            {/* Hero Piece - Use Animated.View wrapper for reliable animation */}
+                            <Animated.View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }, animatedHeroStyle]}>
+                                <Text style={styles.heroPiece}>
+                                    {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
+                                </Text>
+                            </Animated.View>
+                        </View>
+                    </View>
+
+                    {/* File labels (a-h) */}
+                    <View style={styles.fileLabels}>
+                        {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((file) => (
+                            <Text key={file} style={styles.labelText}>{file}</Text>
+                        ))}
+                    </View>
                 </View>
             </View>
             {/* Small label for the specific board if needed, but main text is below */}
@@ -427,5 +446,28 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginTop: 8,
         fontWeight: 'bold',
-    }
+    },
+    // Board label styles
+    boardWithLabels: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    rankLabels: {
+        justifyContent: 'space-around',
+        height: BOARD_SIZE,
+        marginRight: 2,
+    },
+    fileLabels: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        width: BOARD_SIZE,
+        marginTop: 2,
+    },
+    labelText: {
+        color: 'rgba(255,255,255,0.6)',
+        fontSize: 10,
+        fontWeight: '600',
+        width: CELL_SIZE,
+        textAlign: 'center',
+    },
 });

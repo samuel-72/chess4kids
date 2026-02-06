@@ -27,6 +27,7 @@ interface ProgressState extends UserProgress {
     addXP: (amount: number) => void;
     updateStreak: () => void;
     resetProgress: () => void;
+    resetPieceProgress: (piece: PieceType) => void; // Reset single piece
     getCompletedLessonsForPiece: (piece: PieceType) => string[];
     getTotalCompletedLessons: () => number;
 }
@@ -106,6 +107,21 @@ export const useProgressStore = create<ProgressState>()(
             },
 
             resetProgress: () => set(INITIAL_STATE),
+
+            resetPieceProgress: (piece: PieceType) => {
+                const state = get();
+                // Remove lessons for this piece from history
+                const filteredHistory = state.lessonHistory.filter(
+                    (l) => l.pieceType !== piece
+                );
+                set({
+                    lessonsCompleted: {
+                        ...state.lessonsCompleted,
+                        [piece]: [],
+                    },
+                    lessonHistory: filteredHistory,
+                });
+            },
 
             getCompletedLessonsForPiece: (piece: PieceType) => {
                 return get().lessonsCompleted[piece];
