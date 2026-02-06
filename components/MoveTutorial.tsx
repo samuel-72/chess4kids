@@ -13,10 +13,9 @@ import Animated, {
 import { PieceType } from '../stores/progressStore';
 import { borderRadius } from '../constants/theme';
 
-// Reduced size to fit side-by-side on all screens
-// 30 * 5 = 150. Two boards = 300 + gap. Safe for 320px screens.
-const CELL_SIZE = 40;
-const GRID_SIZE = 5;
+// 8x8 board with smaller cells to fit side-by-side
+const CELL_SIZE = 25;
+const GRID_SIZE = 8;
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 
 // Piece Emojis
@@ -39,68 +38,72 @@ type ScenarioType = {
     transformTo?: PieceType; // For Promotion
 };
 
-// PAWN SCENARIOS for Movement Loop
+// PAWN SCENARIOS for Movement Loop (8x8 board, 0-indexed from top)
+// Row 6 = rank 2 (pawn starting row for white)
+// Row 3 = rank 5 (en passant capture row)
+// Row 1 = rank 7 (black pawn starting row)
 const PAWN_SCENARIOS: ScenarioType[] = [
     {
         title: "First Move: 2 Steps! 🚀",
-        heroStart: { x: 2, y: 3 }, // Near bottom
-        heroMove: { dx: 0, dy: -2 },
+        heroStart: { x: 3, y: 6 }, // White pawn on rank 2
+        heroMove: { dx: 0, dy: -2 }, // Moves to rank 4
     },
     {
         title: "Regular Move: 1 Step 🚶",
-        heroStart: { x: 2, y: 2 },
+        heroStart: { x: 4, y: 4 }, // Pawn in middle
         heroMove: { dx: 0, dy: -1 },
     },
     {
         title: "Capture Diagonally! ⚔️",
-        heroStart: { x: 2, y: 2 },
+        heroStart: { x: 3, y: 4 },
         heroMove: { dx: 1, dy: -1 },
-        enemyStart: { x: 3, y: 1 }, // Target
+        enemyStart: { x: 4, y: 3 }, // Target enemy piece
     },
     {
         title: "En Passant! 👻",
-        heroStart: { x: 1, y: 1 }, // White Pawn at Rank 5
-        heroMove: { dx: 1, dy: -1 }, // Captures behind
-        enemyStart: { x: 2, y: 0 }, // Black starts at Rank 7
-        enemyMove: { dx: 0, dy: 2 } // Moves 2 squares to Rank 5
+        heroStart: { x: 3, y: 3 }, // White Pawn on rank 5
+        heroMove: { dx: 1, dy: -1 }, // Captures diagonally
+        enemyStart: { x: 4, y: 1 }, // Black pawn starts on rank 7
+        enemyMove: { dx: 0, dy: 2 } // Moves 2 squares to rank 5 (row 3)
     }
 ];
 
 // PROMOTION SCENARIOS (Cycling through options)
+// Row 1 = rank 7 (one step from promotion)
 const PROMOTION_SCENARIOS: ScenarioType[] = [
     {
         title: "Promote to Queen! ♛",
-        heroStart: { x: 2, y: 1 },
-        heroMove: { dx: 0, dy: -1 },
+        heroStart: { x: 4, y: 1 }, // Pawn on rank 7
+        heroMove: { dx: 0, dy: -1 }, // Move to rank 8 for promotion
         transformTo: 'queen'
     },
     {
         title: "Promote to Rook! ♜",
-        heroStart: { x: 2, y: 1 },
+        heroStart: { x: 4, y: 1 },
         heroMove: { dx: 0, dy: -1 },
         transformTo: 'rook'
     },
     {
         title: "Promote to Knight! ♞",
-        heroStart: { x: 2, y: 1 },
+        heroStart: { x: 4, y: 1 },
         heroMove: { dx: 0, dy: -1 },
         transformTo: 'knight'
     },
     {
         title: "Promote to Bishop! ♝",
-        heroStart: { x: 2, y: 1 },
+        heroStart: { x: 4, y: 1 },
         heroMove: { dx: 0, dy: -1 },
         transformTo: 'bishop'
     }
 ];
 
-// Generic Moves for other pieces
+// Generic Moves for other pieces (8x8 board)
 const GENERIC_MOVES: Record<string, ScenarioType[]> = {
-    knight: [{ title: "L-Shape Jump", heroStart: { x: 2, y: 2 }, heroMove: { dx: 1, dy: -2 } }],
-    bishop: [{ title: "Diagonal Zoom", heroStart: { x: 1, y: 3 }, heroMove: { dx: 2, dy: -2 } }],
-    rook: [{ title: "Straight Lines", heroStart: { x: 1, y: 2 }, heroMove: { dx: 2, dy: 0 } }],
-    queen: [{ title: "Any Direction", heroStart: { x: 2, y: 3 }, heroMove: { dx: -2, dy: -2 } }],
-    king: [{ title: "One Step", heroStart: { x: 2, y: 2 }, heroMove: { dx: 1, dy: 0 } }],
+    knight: [{ title: "L-Shape Jump", heroStart: { x: 3, y: 4 }, heroMove: { dx: 1, dy: -2 } }],
+    bishop: [{ title: "Diagonal Zoom", heroStart: { x: 2, y: 5 }, heroMove: { dx: 3, dy: -3 } }],
+    rook: [{ title: "Straight Lines", heroStart: { x: 2, y: 4 }, heroMove: { dx: 4, dy: 0 } }],
+    queen: [{ title: "Any Direction", heroStart: { x: 4, y: 6 }, heroMove: { dx: -3, dy: -3 } }],
+    king: [{ title: "One Step", heroStart: { x: 4, y: 4 }, heroMove: { dx: 1, dy: 0 } }],
 };
 
 const Arrow = ({ start, end, color = 'rgba(255, 170, 0, 0.6)' }: { start: { x: number, y: number }, end: { x: number, y: number }, color?: string }) => {
@@ -152,7 +155,6 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
     const heroY = useSharedValue(0);
     const enemyX = useSharedValue(0);
     const enemyY = useSharedValue(0);
-    const opacity = useSharedValue(0); // Start invisible, fade in immediately
     const scale = useSharedValue(1);
 
     const [transformedPiece, setTransformedPiece] = useState<PieceType | null>(null);
@@ -187,53 +189,40 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
         heroY.value = 0;
         enemyX.value = 0;
         enemyY.value = 0;
-        opacity.value = 0; // Reset to invisible
         scale.value = 1;
         setTransformedPiece(null);
 
         const { heroMove, enemyMove, transformTo } = activeScenario;
 
         // Sequence Configuration
-        const FADE_IN_DUR = 300;
         const MOVE_DELAY = 500;
         const MOVE_DUR = 800;
-        const FADE_OUT_START = 2200; // Start fading out before 2500ms cycle
 
-        // 1. Fade In
-        opacity.value = withTiming(1, { duration: FADE_IN_DUR });
-
-        // 2. Enemy Move (for En Passant)
+        // Enemy Move (for En Passant)
         if (enemyMove) {
             // Move enemy into position quickly
             enemyX.value = withDelay(300, withTiming(enemyMove.dx * CELL_SIZE, { duration: 600 }));
             enemyY.value = withDelay(300, withTiming(enemyMove.dy * CELL_SIZE, { duration: 600 }));
         }
 
-        // 3. Hero Move
+        // Hero Move
         heroX.value = withDelay(MOVE_DELAY, withTiming(heroMove.dx * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }));
         heroY.value = withDelay(MOVE_DELAY, withTiming(heroMove.dy * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }, (finished) => {
-            // 4. Promotion Transform
+            // Promotion Transform
             if (finished && transformTo) {
                 runOnJS(setTransformedPiece)(transformTo);
                 scale.value = withSequence(withSpring(1.4), withSpring(1));
             }
         }));
 
-        // 5. Fade Out (if looping)
-        if (scenarios.length > 1) {
-            opacity.value = withDelay(FADE_OUT_START, withTiming(0, { duration: 300 }));
-        }
-
     }, [activeScenario]);
 
     const animatedHeroStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: heroX.value }, { translateY: heroY.value }, { scale: scale.value }],
-        opacity: opacity.value
     }));
 
     const animatedEnemyStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: enemyX.value }, { translateY: enemyY.value }],
-        opacity: opacity.value
     }));
 
     // Grid Rendering
@@ -275,12 +264,12 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
                         </Animated.View>
                     )}
 
-                    {/* Hero Piece */}
-                    <View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }]}>
-                        <Animated.Text style={[styles.pieceEmoji, { color: 'black' }, animatedHeroStyle]}>
+                    {/* Hero Piece - Use Animated.View wrapper for reliable animation */}
+                    <Animated.View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }, animatedHeroStyle]}>
+                        <Text style={styles.heroPiece}>
                             {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
-                        </Animated.Text>
-                    </View>
+                        </Text>
+                    </Animated.View>
                 </View>
             </View>
             {/* Small label for the specific board if needed, but main text is below */}
@@ -320,7 +309,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 20,
     },
-    pieceEmoji: { fontSize: 32 }, // Adjusted for smaller cell
+    pieceEmoji: { fontSize: 18 }, // Smaller for 25px cells
+    heroPiece: { fontSize: 18, color: '#000' }, // Black pawn, always visible
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
