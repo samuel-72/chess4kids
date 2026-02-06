@@ -13,14 +13,16 @@ import Animated, {
 import { PieceType } from '../stores/progressStore';
 import { borderRadius } from '../constants/theme';
 
-const CELL_SIZE = 34; // Reduced to fit side-by-side (34*5 = 170 * 2 = 340 + gap)
+// Reduced size to fit side-by-side on all screens
+// 30 * 5 = 150. Two boards = 300 + gap. Safe for 320px screens.
+const CELL_SIZE = 30;
 const GRID_SIZE = 5;
 const BOARD_SIZE = CELL_SIZE * GRID_SIZE;
 
 // Piece Emojis
 const PIECE_EMOJIS: Record<PieceType | 'pawn_enemy', string> = {
     pawn: '♟',
-    pawn_enemy: '♟', // Red/Dark pawn?
+    pawn_enemy: '♟',
     knight: '♞',
     bishop: '♝',
     rook: '♜',
@@ -37,39 +39,60 @@ type ScenarioType = {
     transformTo?: PieceType; // For Promotion
 };
 
-// PAWN SCENARIOS
+// PAWN SCENARIOS for Movement Loop
 const PAWN_SCENARIOS: ScenarioType[] = [
     {
-        title: "First Move: 2 Steps!",
+        title: "First Move: 2 Steps! 🚀",
         heroStart: { x: 2, y: 3 }, // Near bottom
         heroMove: { dx: 0, dy: -2 },
     },
     {
-        title: "Regular Move: 1 Step",
+        title: "Regular Move: 1 Step 🚶",
         heroStart: { x: 2, y: 2 },
         heroMove: { dx: 0, dy: -1 },
     },
     {
-        title: "Capture Diagonally!",
+        title: "Capture Diagonally! ⚔️",
         heroStart: { x: 2, y: 2 },
         heroMove: { dx: 1, dy: -1 },
         enemyStart: { x: 3, y: 1 }, // Target
     },
     {
-        title: "En Passant (Special!)",
-        heroStart: { x: 1, y: 1 }, // White Pawn at Rank 5 (visual row 1)
+        title: "En Passant! 👻",
+        heroStart: { x: 1, y: 1 }, // White Pawn at Rank 5
         heroMove: { dx: 1, dy: -1 }, // Captures behind
-        enemyStart: { x: 2, y: 0 }, // Black starts at Rank 7 (visual row 0)
+        enemyStart: { x: 2, y: 0 }, // Black starts at Rank 7
         enemyMove: { dx: 0, dy: 2 } // Moves 2 squares to Rank 5
     }
 ];
 
-const PROMOTION_SCENARIO: ScenarioType = {
-    title: "Promotion!",
-    heroStart: { x: 2, y: 1 }, // Near end
-    heroMove: { dx: 0, dy: -1 }, // Moves to end
-    transformTo: 'queen'
-};
+// PROMOTION SCENARIOS (Cycling through options)
+const PROMOTION_SCENARIOS: ScenarioType[] = [
+    {
+        title: "Promote to Queen! ♛",
+        heroStart: { x: 2, y: 1 },
+        heroMove: { dx: 0, dy: -1 },
+        transformTo: 'queen'
+    },
+    {
+        title: "Promote to Rook! ♜",
+        heroStart: { x: 2, y: 1 },
+        heroMove: { dx: 0, dy: -1 },
+        transformTo: 'rook'
+    },
+    {
+        title: "Promote to Knight! ♞",
+        heroStart: { x: 2, y: 1 },
+        heroMove: { dx: 0, dy: -1 },
+        transformTo: 'knight'
+    },
+    {
+        title: "Promote to Bishop! ♝",
+        heroStart: { x: 2, y: 1 },
+        heroMove: { dx: 0, dy: -1 },
+        transformTo: 'bishop'
+    }
+];
 
 // Generic Moves for other pieces
 const GENERIC_MOVES: Record<string, ScenarioType[]> = {
@@ -108,9 +131,10 @@ const Arrow = ({ start, end, color = 'rgba(255, 170, 0, 0.6)' }: { start: { x: n
 interface MoveTutorialProps {
     piece: PieceType;
     variant?: 'movement' | 'promotion';
+    onScenarioChange?: (title: string) => void;
 }
 
-export function MoveTutorial({ piece, variant = 'movement' }: MoveTutorialProps) {
+export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: MoveTutorialProps) {
     const [scenarioIndex, setScenarioIndex] = useState(0);
 
     // Determine Scenarios
@@ -128,14 +152,21 @@ export function MoveTutorial({ piece, variant = 'movement' }: MoveTutorialProps)
     const heroY = useSharedValue(0);
     const enemyX = useSharedValue(0);
     const enemyY = useSharedValue(0);
-    const opacity = useSharedValue(1);
-    const scale = useSharedValue(1); // For promotion pop
+    const opacity = useSharedValue(0); // Start invisible, fade in immediately
+    const scale = useSharedValue(1);
 
     const [transformedPiece, setTransformedPiece] = useState<PieceType | null>(null);
 
-    // Cycle through scenarios
+    // Call back with title
     useEffect(() => {
-        // Reset state when scenario list changes
+        if (onScenarioChange) {
+            onScenarioChange(activeScenario.title);
+        }
+    }, [activeScenario, onScenarioChange]);
+
+    // Cycling Timer
+    useEffect(() => {
+        // Reset index when scenarios change
         setScenarioIndex(0);
     }, [scenarios]);
 
@@ -143,50 +174,57 @@ export function MoveTutorial({ piece, variant = 'movement' }: MoveTutorialProps)
         if (scenarios.length <= 1) return;
         const timer = setInterval(() => {
             setScenarioIndex(prev => (prev + 1) % scenarios.length);
-        }, 3000); // 3 seconds per scenario for better readability
+        }, 3000); // 3 seconds per scenario (User requested 2s transition? 3s allows 2s animation + buffer)
+        // User said: "transition from one animation to another after 2 seconds"
+        // If animation takes ~2s, 2s interval is very tight. Let's try 2500ms.
         return () => clearInterval(timer);
     }, [scenarios.length]);
 
     // Run Animation for current Scenario
     useEffect(() => {
-        // Reset
+        // Reset Logic
         heroX.value = 0;
         heroY.value = 0;
         enemyX.value = 0;
         enemyY.value = 0;
-        opacity.value = 0;
+        opacity.value = 0; // Reset to invisible
         scale.value = 1;
         setTransformedPiece(null);
 
         const { heroMove, enemyMove, transformTo } = activeScenario;
 
-        // Sequence
-        // 1. Fade In
-        opacity.value = withTiming(1, { duration: 500 });
+        // Sequence Configuration
+        const FADE_IN_DUR = 300;
+        const MOVE_DELAY = 500;
+        const MOVE_DUR = 800;
+        const FADE_OUT_START = 2200; // Start fading out before 2500ms cycle
 
-        // 2. Enemy Move (if En Passant)
+        // 1. Fade In
+        opacity.value = withTiming(1, { duration: FADE_IN_DUR });
+
+        // 2. Enemy Move (for En Passant)
         if (enemyMove) {
-            enemyX.value = withDelay(500, withTiming(enemyMove.dx * CELL_SIZE, { duration: 800 }));
-            enemyY.value = withDelay(500, withTiming(enemyMove.dy * CELL_SIZE, { duration: 800 }));
+            // Move enemy into position quickly
+            enemyX.value = withDelay(300, withTiming(enemyMove.dx * CELL_SIZE, { duration: 600 }));
+            enemyY.value = withDelay(300, withTiming(enemyMove.dy * CELL_SIZE, { duration: 600 }));
         }
 
         // 3. Hero Move
-        const moveDelay = enemyMove ? 1500 : 800;
-        heroX.value = withDelay(moveDelay, withTiming(heroMove.dx * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) }));
-        heroY.value = withDelay(moveDelay, withTiming(heroMove.dy * CELL_SIZE, { duration: 1000, easing: Easing.inOut(Easing.cubic) }, () => {
+        heroX.value = withDelay(MOVE_DELAY, withTiming(heroMove.dx * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }));
+        heroY.value = withDelay(MOVE_DELAY, withTiming(heroMove.dy * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }, (finished) => {
             // 4. Promotion Transform
-            if (transformTo) {
+            if (finished && transformTo) {
                 runOnJS(setTransformedPiece)(transformTo);
-                scale.value = withSequence(withSpring(1.5), withSpring(1));
+                scale.value = withSequence(withSpring(1.4), withSpring(1));
             }
         }));
 
-        // 5. Fade Out (if loop)
+        // 5. Fade Out (if looping)
         if (scenarios.length > 1) {
-            opacity.value = withDelay(3500, withTiming(0, { duration: 500 }));
+            opacity.value = withDelay(FADE_OUT_START, withTiming(0, { duration: 300 }));
         }
 
-    }, [activeScenario]); // Re-run when scenario changes
+    }, [activeScenario]);
 
     const animatedHeroStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: heroX.value }, { translateY: heroY.value }, { scale: scale.value }],
@@ -212,70 +250,68 @@ export function MoveTutorial({ piece, variant = 'movement' }: MoveTutorialProps)
 
     const heroStart = activeScenario.heroStart;
     const heroEnd = { x: heroStart.x + activeScenario.heroMove.dx, y: heroStart.y + activeScenario.heroMove.dy };
-
     const enemyStart = activeScenario.enemyStart;
 
     return (
         <View style={styles.container}>
-            <View style={styles.header}>
-                <Text style={styles.scenarioTitle}>{activeScenario.title}</Text>
-            </View>
-            <View style={styles.board}>
-                {squares}
+            {/* Board */}
+            <View style={styles.boardOuter}>
+                <View style={styles.board}>
+                    {squares}
 
-                {/* Arrow */}
-                <Arrow start={heroStart} end={heroEnd} />
-                {activeScenario.enemyMove && enemyStart && (
-                    <Arrow start={enemyStart} end={{ x: enemyStart.x + activeScenario.enemyMove.dx, y: enemyStart.y + activeScenario.enemyMove.dy }} color="rgba(255, 0, 0, 0.4)" />
-                )}
+                    {/* Arrow (Static path) */}
+                    <Arrow start={heroStart} end={heroEnd} />
+                    {activeScenario.enemyMove && enemyStart && (
+                        <Arrow start={enemyStart} end={{ x: enemyStart.x + activeScenario.enemyMove.dx, y: enemyStart.y + activeScenario.enemyMove.dy }} color="rgba(255, 0, 0, 0.4)" />
+                    )}
 
-                {/* Target Marker */}
-                <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
+                    {/* Target Highlight */}
+                    <View style={[styles.targetMarker, { left: heroEnd.x * CELL_SIZE, top: heroEnd.y * CELL_SIZE }]} />
 
-                {/* Enemy Piece */}
-                {activeScenario.enemyStart && (
-                    <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
-                        <Text style={[styles.pieceEmoji, { color: 'red' }]}>♟️</Text>
-                        <View style={styles.enemyDot} />
-                    </Animated.View>
-                )}
+                    {/* Enemy Piece (Red for visibility) */}
+                    {activeScenario.enemyStart && (
+                        <Animated.View style={[styles.pieceContainer, { left: activeScenario.enemyStart.x * CELL_SIZE, top: activeScenario.enemyStart.y * CELL_SIZE }, animatedEnemyStyle]}>
+                            <Text style={[styles.pieceEmoji, { color: '#ef5350' }]}>♟️</Text>
+                        </Animated.View>
+                    )}
 
-                {/* Hero Piece */}
-                <View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }]}>
-                    <Animated.Text style={[styles.pieceEmoji, animatedHeroStyle]}>
-                        {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
-                    </Animated.Text>
+                    {/* Hero Piece */}
+                    <View style={[styles.pieceContainer, { left: heroStart.x * CELL_SIZE, top: heroStart.y * CELL_SIZE }]}>
+                        <Animated.Text style={[styles.pieceEmoji, animatedHeroStyle]}>
+                            {transformedPiece ? PIECE_EMOJIS[transformedPiece] : PIECE_EMOJIS[piece]}
+                        </Animated.Text>
+                    </View>
                 </View>
             </View>
+            {/* Small label for the specific board if needed, but main text is below */}
+            {/* <Text style={styles.caption}>{activeScenario.title}</Text> */}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { alignItems: 'center', gap: 10 },
-    header: { height: 30, justifyContent: 'center' },
-    scenarioTitle: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+    container: { alignItems: 'center', margin: 4 }, // Reduced margin
     boardOuter: {
         borderRadius: borderRadius.md,
         overflow: 'hidden',
         borderWidth: 2,
-        borderColor: '#4a4a4a',
+        borderColor: '#555',
         backgroundColor: '#333',
-        elevation: 10,
+        elevation: 6,
+        shadowColor: 'black',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
     },
     board: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         width: BOARD_SIZE,
         height: BOARD_SIZE,
-        borderRadius: borderRadius.md,
-        overflow: 'hidden',
-        borderWidth: 2,
-        borderColor: '#4a4a4a',
     },
     square: { width: CELL_SIZE, height: CELL_SIZE },
-    light: { backgroundColor: '#EEEED2' },
-    dark: { backgroundColor: '#769656' },
+    light: { backgroundColor: '#F0D9B5' }, // More standard chess colors
+    dark: { backgroundColor: '#B58863' },
     pieceContainer: {
         position: 'absolute',
         width: CELL_SIZE,
@@ -284,23 +320,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 20,
     },
-    pieceEmoji: { fontSize: 32 },
+    pieceEmoji: { fontSize: 24 }, // Adjusted for smaller cell
     targetMarker: {
         position: 'absolute',
         width: CELL_SIZE,
         height: CELL_SIZE,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 255, 0, 0.2)',
+        backgroundColor: 'rgba(76, 175, 80, 0.3)',
         zIndex: 5,
+        borderRadius: CELL_SIZE / 2, // Circular marker
     },
-    enemyDot: {
-        position: 'absolute',
-        bottom: 2,
-        right: 2,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: 'red'
+    caption: {
+        color: '#aaa',
+        fontSize: 10,
+        marginTop: 4
     }
 });
