@@ -106,7 +106,7 @@ export default function HomeScreen() {
                         <Text style={styles.subGreeting}>Level {level} • {totalXP} XP</Text>
                     </View>
                     <Pressable onPress={handleLogout} style={styles.logoutButton}>
-                        <Text style={styles.logoutText}>🚪</Text>
+                        <Text style={styles.logoutText}>🚪 Log Out</Text>
                     </Pressable>
                 </View>
 
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     logoutButton: {
-        width: 44,
+        paddingHorizontal: spacing.md,
         height: 44,
         borderRadius: 22,
         backgroundColor: 'rgba(0,0,0,0.2)',
@@ -167,7 +167,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     logoutText: {
-        fontSize: 20,
+        fontSize: fontSize.sm,
+        color: colors.white,
+        fontWeight: 'bold',
     },
     listContent: {
         paddingHorizontal: spacing.lg,

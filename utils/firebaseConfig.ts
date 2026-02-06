@@ -13,6 +13,10 @@ const firebaseConfig = {
     appId: "APP_ID"
 };
 
+export const isConfigValid = () => {
+    return firebaseConfig.apiKey !== "API_KEY_PLACEHOLDER";
+};
+
 // Initialize Firebase (singleton pattern)
 let app;
 let auth;
