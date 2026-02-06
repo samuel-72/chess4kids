@@ -97,13 +97,113 @@ const PROMOTION_SCENARIOS: ScenarioType[] = [
     }
 ];
 
+// KNIGHT SCENARIOS
+const KNIGHT_SCENARIOS: ScenarioType[] = [
+    {
+        title: "L-Shape Jump! 🐴",
+        heroStart: { x: 3, y: 5 },
+        heroMove: { dx: 2, dy: -1 },
+    },
+    {
+        title: "Jump Over Pieces! 🦘",
+        heroStart: { x: 4, y: 4 },
+        heroMove: { dx: -1, dy: -2 },
+    },
+    {
+        title: "Knight Capture! ⚔️",
+        heroStart: { x: 2, y: 5 },
+        heroMove: { dx: 2, dy: -1 },
+        enemyStart: { x: 4, y: 4 }, // Target
+    },
+];
+
+// BISHOP SCENARIOS
+const BISHOP_SCENARIOS: ScenarioType[] = [
+    {
+        title: "Diagonal Slide! ↗️",
+        heroStart: { x: 1, y: 6 },
+        heroMove: { dx: 4, dy: -4 },
+    },
+    {
+        title: "Other Diagonal! ↖️",
+        heroStart: { x: 6, y: 6 },
+        heroMove: { dx: -3, dy: -3 },
+    },
+    {
+        title: "Bishop Capture! ⚔️",
+        heroStart: { x: 2, y: 5 },
+        heroMove: { dx: 3, dy: -3 },
+        enemyStart: { x: 5, y: 2 }, // Target
+    },
+];
+
+// ROOK SCENARIOS
+const ROOK_SCENARIOS: ScenarioType[] = [
+    {
+        title: "Straight Across! ➡️",
+        heroStart: { x: 1, y: 4 },
+        heroMove: { dx: 5, dy: 0 },
+    },
+    {
+        title: "Straight Up! ⬆️",
+        heroStart: { x: 4, y: 6 },
+        heroMove: { dx: 0, dy: -4 },
+    },
+    {
+        title: "Rook Capture! ⚔️",
+        heroStart: { x: 1, y: 3 },
+        heroMove: { dx: 5, dy: 0 },
+        enemyStart: { x: 6, y: 3 }, // Target
+    },
+];
+
+// QUEEN SCENARIOS
+const QUEEN_SCENARIOS: ScenarioType[] = [
+    {
+        title: "Move Like Rook! ➡️",
+        heroStart: { x: 3, y: 7 },
+        heroMove: { dx: 0, dy: -5 },
+    },
+    {
+        title: "Move Like Bishop! ↗️",
+        heroStart: { x: 1, y: 6 },
+        heroMove: { dx: 4, dy: -4 },
+    },
+    {
+        title: "Queen Capture! 👑⚔️",
+        heroStart: { x: 3, y: 5 },
+        heroMove: { dx: 3, dy: -3 },
+        enemyStart: { x: 6, y: 2 }, // Target
+    },
+];
+
+// KING SCENARIOS
+const KING_SCENARIOS: ScenarioType[] = [
+    {
+        title: "One Step Any Way! 👑",
+        heroStart: { x: 4, y: 4 },
+        heroMove: { dx: 1, dy: 0 },
+    },
+    {
+        title: "Diagonal Step! ↗️",
+        heroStart: { x: 4, y: 4 },
+        heroMove: { dx: 1, dy: -1 },
+    },
+    {
+        title: "King Capture! ⚔️",
+        heroStart: { x: 4, y: 4 },
+        heroMove: { dx: 1, dy: -1 },
+        enemyStart: { x: 5, y: 3 }, // Target
+    },
+];
+
 // Generic Moves for other pieces (8x8 board)
 const GENERIC_MOVES: Record<string, ScenarioType[]> = {
-    knight: [{ title: "L-Shape Jump", heroStart: { x: 3, y: 4 }, heroMove: { dx: 1, dy: -2 } }],
-    bishop: [{ title: "Diagonal Zoom", heroStart: { x: 2, y: 5 }, heroMove: { dx: 3, dy: -3 } }],
-    rook: [{ title: "Straight Lines", heroStart: { x: 2, y: 4 }, heroMove: { dx: 4, dy: 0 } }],
-    queen: [{ title: "Any Direction", heroStart: { x: 4, y: 6 }, heroMove: { dx: -3, dy: -3 } }],
-    king: [{ title: "One Step", heroStart: { x: 4, y: 4 }, heroMove: { dx: 1, dy: 0 } }],
+    knight: KNIGHT_SCENARIOS,
+    bishop: BISHOP_SCENARIOS,
+    rook: ROOK_SCENARIOS,
+    queen: QUEEN_SCENARIOS,
+    king: KING_SCENARIOS,
 };
 
 const Arrow = ({ start, end, color = 'rgba(255, 170, 0, 0.6)' }: { start: { x: number, y: number }, end: { x: number, y: number }, color?: string }) => {
