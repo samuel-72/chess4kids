@@ -22,12 +22,12 @@ import { getLessonsForPiece } from '../utils/lessonGenerator';
 import { BlurView } from 'expo-blur';
 
 const PIECES: { type: PieceType; label: string; image?: any; emoji: string }[] = [
-    { type: 'pawn', label: 'The Loyal Soldier', image: require('../assets/pieces/pawn.png'), emoji: '♟️' },
-    { type: 'knight', label: 'The Brave Knight', image: require('../assets/pieces/knight.png'), emoji: '♞' },
-    { type: 'bishop', label: 'The Wise Wizard', emoji: '🧙‍♂️' },
-    { type: 'rook', label: 'The Strong Castle', emoji: '🏰' },
-    { type: 'queen', label: 'The Mighty Queen', emoji: '👑' },
-    { type: 'king', label: 'The Royal King', emoji: '🤴' },
+    { type: 'pawn', label: 'A Brave Pawn', image: require('../assets/pieces/pawn.png'), emoji: '♟️' },
+    { type: 'knight', label: 'A Majestic Knight', image: require('../assets/pieces/knight.png'), emoji: '♞' },
+    { type: 'bishop', label: 'A Wise Wizard', emoji: '🧙‍♂️' },
+    { type: 'rook', label: 'A Strong Castle', emoji: '🏰' },
+    { type: 'queen', label: 'A Mighty Queen', emoji: '👑' },
+    { type: 'king', label: 'A Royal King', emoji: '🤴' },
 ];
 
 export default function HomeScreen() {

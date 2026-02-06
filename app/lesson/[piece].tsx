@@ -9,37 +9,34 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, spacing, fontSize, borderRadius } from '../../constants/theme';
 import { getValidMoves, Position, positionToSquare } from '../../utils/chessLogic';
 import { PieceType, useProgressStore } from '../../stores/progressStore';
 import CelebrationOverlay from '../../components/CelebrationOverlay';
 import { SoundEffects } from '../../utils/soundEffects';
+import { MoveTutorial } from '../../components/MoveTutorial';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const DEFAULT_BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 360);
 
 // Piece info for display
 const PIECE_INFO: Record<PieceType, { emoji: string; name: string; color: string; hint: string }> = {
-    pawn: { emoji: '♟', name: 'Pawn', color: '#4CAF50', hint: 'Pawns move forward 1 square (or 2 from start)' },
-    knight: { emoji: '♞', name: 'Knight', color: '#FF9800', hint: 'Knights move in an L-shape (2+1 squares)' },
-    bishop: { emoji: '♝', name: 'Bishop', color: '#9C27B0', hint: 'Bishops move diagonally any number of squares' },
-    rook: { emoji: '♜', name: 'Rook', color: '#2196F3', hint: 'Rooks move straight (horizontal or vertical)' },
-    queen: { emoji: '♛', name: 'Queen', color: '#E91E63', hint: 'The Queen moves any direction, any distance!' },
-    king: { emoji: '♚', name: 'King', color: '#FFD700', hint: 'Kings move 1 square in any direction' },
+    pawn: { emoji: '♟', name: 'Pawn', color: '#4CAF50', hint: 'Pawns move 1 step forward!' },
+    knight: { emoji: '♞', name: 'Knight', color: '#FF9800', hint: 'Knights jump in an L shape!' },
+    bishop: { emoji: '♝', name: 'Bishop', color: '#9C27B0', hint: 'Bishops zoom diagonally!' },
+    rook: { emoji: '♜', name: 'Rook', color: '#2196F3', hint: 'Rooks move straight lines!' },
+    queen: { emoji: '♛', name: 'Queen', color: '#E91E63', hint: 'Queen goes anywhere she wants!' },
+    king: { emoji: '♚', name: 'King', color: '#FFD700', hint: 'Kings step 1 square gently.' },
 };
 
-// Fun surprise rewards
 const SURPRISE_REWARDS = [
     { emoji: '🍫', name: 'Chocolate Bar!' },
     { emoji: '🦄', name: 'Magical Unicorn!' },
     { emoji: '🦕', name: 'Friendly Dinosaur!' },
-    { emoji: '🐶', name: 'Cute Puppy!' },
-    { emoji: '🐱', name: 'Adorable Kitten!' },
     { emoji: '🎁', name: 'Mystery Gift!' },
     { emoji: '👑', name: 'Golden Crown!' },
-    { emoji: '💎', name: 'Shiny Diamond!' },
-    { emoji: '🌈', name: 'Rainbow!' },
-    { emoji: '🍭', name: 'Sweet Lollipop!' },
 ];
 
 type GameMode = 'practice' | 'fastest_finger';
@@ -54,15 +51,35 @@ export default function LessonScreen() {
     // Game mode selection
     const [gameMode, setGameMode] = useState<GameMode | null>(null);
     const [boardSize, setBoardSize] = useState(DEFAULT_BOARD_SIZE);
-    const squareSize = boardSize / 8;
+
+    // Pan Gesture State
+    const boardOffsetX = useSharedValue(0);
+    const boardOffsetY = useSharedValue(0);
+    const savedOffsetX = useSharedValue(0);
+    const savedOffsetY = useSharedValue(0);
+
+    const panGesture = Gesture.Pan()
+        .onUpdate((e) => {
+            boardOffsetX.value = savedOffsetX.value + e.translationX;
+            boardOffsetY.value = savedOffsetY.value + e.translationY;
+        })
+        .onEnd(() => {
+            savedOffsetX.value = boardOffsetX.value;
+            savedOffsetY.value = boardOffsetY.value;
+        });
+
+    const animatedBoardStyle = useAnimatedStyle(() => ({
+        transform: [
+            { translateX: boardOffsetX.value },
+            { translateY: boardOffsetY.value }
+        ]
+    }));
 
     // Get appropriate starting position based on piece type
     const getRandomPosition = useCallback((): Position => {
         switch (piece) {
             case 'pawn':
                 return { row: 1 + Math.floor(Math.random() * 2), col: Math.floor(Math.random() * 8) };
-            case 'king':
-                return { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
             default:
                 return { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
         }
@@ -81,7 +98,6 @@ export default function LessonScreen() {
     const [message, setMessage] = useState<string>('');
     const [messageType, setMessageType] = useState<'success' | 'hint' | 'error'>('hint');
 
-    // Fastest Finger mode state
     const [timer, setTimer] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     const [bestTime, setBestTime] = useState<number | null>(null);
@@ -92,7 +108,6 @@ export default function LessonScreen() {
 
     const completeLesson = useProgressStore(state => state.completeLesson);
 
-    // Timer for Fastest Finger mode
     useEffect(() => {
         if (gameMode === 'fastest_finger' && isTimerRunning) {
             timerRef.current = setInterval(() => {
@@ -104,19 +119,17 @@ export default function LessonScreen() {
         };
     }, [gameMode, isTimerRunning]);
 
-    // Calculate valid moves whenever piece position changes
+    // Calculate valid moves
     useEffect(() => {
         if (gameMode) {
             const square = positionToSquare(piecePosition);
             const moves = getValidMoves(piece, square);
             setValidMoves(moves);
 
-            let targets = moves;
-            if (['bishop', 'rook', 'queen'].includes(piece) && moves.length > 6) {
-                const shuffled = [...moves].sort(() => Math.random() - 0.5);
-                targets = shuffled.slice(0, 6);
-            }
-            setTargetMoves(targets);
+            // FIX: Allow finding ALL moves, but cap the goal at 6 max for UI simplicity
+            // This fixes the bug where unseen valid moves were marked wrong
+            setTargetMoves(moves); // Use ALL moves as targets
+
             setFoundMoves(new Set());
             setWrongGuesses(new Set());
             moveStartTime.current = Date.now();
@@ -127,9 +140,9 @@ export default function LessonScreen() {
         }
     }, [piecePosition, piece, gameMode]);
 
-    // Check if all target moves found
     useEffect(() => {
-        if (targetMoves.length > 0 && foundMoves.size === targetMoves.length) {
+        const goal = Math.min(targetMoves.length, 6);
+        if (targetMoves.length > 0 && foundMoves.size >= goal) {
             handleRoundComplete();
         }
     }, [foundMoves, targetMoves]);
@@ -179,7 +192,6 @@ export default function LessonScreen() {
         }
     };
 
-    // Handle square tap
     const handleSquareTap = (row: number, col: number) => {
         const targetSquare = positionToSquare({ row, col });
 
@@ -192,21 +204,22 @@ export default function LessonScreen() {
         }
         if (wrongGuesses.has(targetSquare)) return;
 
-        if (targetMoves.includes(targetSquare)) {
+        // FIXED LOGIC: validMoves tracks truth.
+        if (validMoves.includes(targetSquare)) {
             // CORRECT!
             const newFound = new Set(foundMoves);
             newFound.add(targetSquare);
             setFoundMoves(newFound);
 
-            // Calculate speed bonus for fastest finger
+            // Calculate speed bonus
             let pointsEarned = 10;
             if (gameMode === 'fastest_finger') {
                 const moveTime = Date.now() - moveStartTime.current;
                 if (moveTime < 1000) {
-                    pointsEarned += 10; // Super fast bonus
+                    pointsEarned += 10;
                     setSpeedBonus(prev => prev + 10);
                 } else if (moveTime < 2000) {
-                    pointsEarned += 5; // Fast bonus
+                    pointsEarned += 5;
                     setSpeedBonus(prev => prev + 5);
                 }
                 moveStartTime.current = Date.now();
@@ -215,7 +228,9 @@ export default function LessonScreen() {
             setScore(prev => prev + pointsEarned);
             SoundEffects.move();
 
-            const remaining = targetMoves.length - newFound.size;
+            const goal = Math.min(targetMoves.length, 6);
+            const remaining = goal - newFound.size;
+
             if (remaining > 0) {
                 const bonusText = gameMode === 'fastest_finger' && pointsEarned > 10 ? ' ⚡' : '';
                 setMessage(`+${pointsEarned}${bonusText} ${remaining} left!`);
@@ -231,9 +246,8 @@ export default function LessonScreen() {
             newWrong.add(targetSquare);
             setWrongGuesses(newWrong);
 
-            // Time penalty in fastest finger
             if (gameMode === 'fastest_finger') {
-                setTimer(prev => prev + 2000); // 2 second penalty
+                setTimer(prev => prev + 2000);
             }
 
             SoundEffects.error();
@@ -249,8 +263,7 @@ export default function LessonScreen() {
         return `${seconds}.${tenths}s`;
     };
 
-    // Render a single square
-    const renderSquare = (row: number, col: number) => {
+    const renderSquare = (row: number, col: number, squareSize: number) => {
         const isLight = (row + col) % 2 === 1;
         const squareName = positionToSquare({ row, col });
         const isPieceHere = piecePosition.row === row && piecePosition.col === col;
@@ -276,7 +289,6 @@ export default function LessonScreen() {
         );
     };
 
-    // Mode Selection Screen
     if (gameMode === null) {
         return (
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
@@ -285,20 +297,25 @@ export default function LessonScreen() {
                         <Text style={styles.backButtonText}>← Back</Text>
                     </Pressable>
 
-                    <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name} Practice</Text>
-                    <Text style={styles.modeSubtitle}>Choose your mode</Text>
+                    <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name}</Text>
+
+                    {/* Animated Tutorial */}
+                    <View style={styles.tutorialContainer}>
+                        <MoveTutorial piece={piece} />
+                        <Text style={styles.tutorialText}>{pieceInfo.hint}</Text>
+                    </View>
 
                     <View style={styles.modeButtonsContainer}>
                         <Pressable style={styles.modeButton} onPress={() => setGameMode('practice')}>
                             <Text style={styles.modeButtonEmoji}>📚</Text>
                             <Text style={styles.modeButtonTitle}>Learn Mode</Text>
-                            <Text style={styles.modeButtonDesc}>Take your time, no pressure</Text>
+                            <Text style={styles.modeButtonDesc}>Take your time</Text>
                         </Pressable>
 
                         <Pressable style={[styles.modeButton, styles.fastestFingerButton]} onPress={() => setGameMode('fastest_finger')}>
                             <Text style={styles.modeButtonEmoji}>⚡</Text>
                             <Text style={styles.modeButtonTitle}>Fastest Finger</Text>
-                            <Text style={styles.modeButtonDesc}>Speed + Accuracy = Victory!</Text>
+                            <Text style={styles.modeButtonDesc}>Speed Challenge!</Text>
                         </Pressable>
                     </View>
                 </SafeAreaView>
@@ -306,7 +323,6 @@ export default function LessonScreen() {
         );
     }
 
-    // Lesson Complete Screen
     if (lessonComplete) {
         return (
             <LinearGradient colors={['#6B4EE6', '#9C27B0', '#E91E63']} style={styles.container}>
@@ -314,28 +330,6 @@ export default function LessonScreen() {
                     <Text style={styles.completeEmoji}>{surpriseReward.emoji}</Text>
                     <Text style={styles.completeTitle}>Lesson Complete!</Text>
                     <Text style={styles.completeSubtitle}>You earned a {surpriseReward.name}</Text>
-
-                    <View style={styles.statsContainer}>
-                        <View style={styles.statBox}>
-                            <Text style={styles.statValue}>{score}</Text>
-                            <Text style={styles.statLabel}>Points</Text>
-                        </View>
-                        {gameMode === 'fastest_finger' && (
-                            <View style={styles.statBox}>
-                                <Text style={styles.statValue}>{formatTime(timer)}</Text>
-                                <Text style={styles.statLabel}>Time</Text>
-                            </View>
-                        )}
-                        <View style={styles.statBox}>
-                            <Text style={styles.statValue}>{3 - Math.min(wrongGuesses.size, 2)}⭐</Text>
-                            <Text style={styles.statLabel}>Stars</Text>
-                        </View>
-                    </View>
-
-                    {gameMode === 'fastest_finger' && speedBonus > 0 && (
-                        <Text style={styles.speedBonusText}>⚡ Speed Bonus: +{speedBonus} pts!</Text>
-                    )}
-
                     <Pressable style={styles.doneButton} onPress={onBack}>
                         <Text style={styles.doneButtonText}>🏠 Back to Home</Text>
                     </Pressable>
@@ -344,104 +338,93 @@ export default function LessonScreen() {
         );
     }
 
-    return (
-        <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
-            <SafeAreaView style={styles.safeArea}>
-                {/* Header - Fixed Position */}
-                <View style={styles.header}>
-                    <Pressable onPress={onBack} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← Back</Text>
-                    </Pressable>
-                    <View style={styles.scoreContainer}>
-                        <Text style={styles.scoreLabel}>Score</Text>
-                        <Text style={styles.scoreValue}>{score}</Text>
-                    </View>
-                    {gameMode === 'fastest_finger' && (
-                        <View style={[styles.scoreContainer, styles.timerContainer]}>
-                            <Text style={styles.scoreLabel}>⚡ Time</Text>
-                            <Text style={styles.scoreValue}>{formatTime(timer)}</Text>
-                        </View>
-                    )}
-                    <View style={styles.roundContainer}>
-                        <Text style={styles.roundLabel}>Round</Text>
-                        <Text style={styles.roundValue}>{round}/3</Text>
-                    </View>
-                </View>
+    // MAIN GAME
+    const squareSize = boardSize / 8;
+    const goalText = Math.min(targetMoves.length, 6);
 
-                {/* Main Content - Flex layout with centered board */}
-                <View style={styles.mainContent}>
-                    {/* Instructions - Top */}
+    return (
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
+                <SafeAreaView style={styles.safeArea}>
+                    <View style={styles.header}>
+                        <Pressable onPress={onBack} style={styles.backButton}>
+                            <Text style={styles.backButtonText}>← Back</Text>
+                        </Pressable>
+                        <View style={styles.scoreContainer}>
+                            <Text style={styles.scoreLabel}>Score</Text>
+                            <Text style={styles.scoreValue}>{score}</Text>
+                        </View>
+                    </View>
+
                     <View style={styles.instructionsContainer}>
                         <Text style={styles.instructionsTitle}>
                             {gameMode === 'fastest_finger' ? '⚡ ' : ''}{pieceInfo.emoji} Find the Moves!
                         </Text>
-                        <Text style={styles.progressText}>Found: {foundMoves.size}/{targetMoves.length}</Text>
+                        <Text style={styles.progressText}>Found: {foundMoves.size}/{goalText}</Text>
                     </View>
 
-                    {/* Board - Centered with fixed position */}
-                    <View style={styles.boardWrapper}>
-                        <View style={[styles.board, { width: boardSize, height: boardSize }]}>
-                            {[...Array(8)].map((_, rowFromTop) => {
-                                const row = 7 - rowFromTop;
-                                return (
-                                    <View key={row} style={styles.boardRow}>
-                                        {[...Array(8)].map((_, col) => renderSquare(row, col))}
+                    <View style={styles.mainContent}>
+                        {/* Draggable Board Container */}
+                        <GestureDetector gesture={panGesture}>
+                            <Animated.View style={[styles.boardWrapper, animatedBoardStyle]}>
+                                <View style={[styles.board, { width: boardSize, height: boardSize }]}>
+                                    {[...Array(8)].map((_, rowFromTop) => {
+                                        const row = 7 - rowFromTop;
+                                        return (
+                                            <View key={row} style={styles.boardRow}>
+                                                {[...Array(8)].map((_, col) => renderSquare(row, col, squareSize))}
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+
+                                {message ? (
+                                    <View style={[
+                                        styles.messageOverlay,
+                                        messageType === 'success' && styles.successMessage,
+                                        messageType === 'error' && styles.errorMessage,
+                                    ]}>
+                                        <Text style={styles.messageText}>{message}</Text>
                                     </View>
-                                );
-                            })}
-                        </View>
+                                ) : null}
+                            </Animated.View>
+                        </GestureDetector>
 
-                        {/* Message Overlay - Positioned on board, doesn't shift layout */}
-                        {message ? (
-                            <View style={[
-                                styles.messageOverlay,
-                                messageType === 'success' && styles.successMessage,
-                                messageType === 'error' && styles.errorMessage,
-                            ]}>
-                                <Text style={styles.messageText}>{message}</Text>
+                        <View style={styles.controlsFooter}>
+                            <Text style={styles.hintText}>💡 Drag board to move, +/- to resize</Text>
+                            <View style={styles.sizeControlContainerInGame}>
+                                <Pressable
+                                    style={styles.sizeButtonSmall}
+                                    onPress={() => setBoardSize(prev => Math.max(200, prev - 40))}
+                                >
+                                    <Text style={styles.sizeButtonTextSmall}>-</Text>
+                                </Pressable>
+                                <Pressable
+                                    style={styles.sizeButtonSmall}
+                                    onPress={() => setBoardSize(prev => Math.min(SCREEN_WIDTH * 1.5, prev + 40))}
+                                >
+                                    <Text style={styles.sizeButtonTextSmall}>+</Text>
+                                </Pressable>
                             </View>
-                        ) : null}
-                    </View>
-
-                    {/* Hint - Bottom */}
-                    <View style={styles.hintContainer}>
-                        <Text style={styles.hintText}>💡 {pieceInfo.hint}</Text>
-                    </View>
-
-                    {/* Board Size Controls (In-Game) */}
-                    <View style={styles.sizeControlContainerInGame}>
-                        <Text style={styles.sizeLabelInGame}>Board Size: {Math.round(boardSize)}</Text>
-                        <View style={styles.sizeButtonsInGame}>
-                            <Pressable
-                                style={styles.sizeButtonSmall}
-                                onPress={() => setBoardSize(prev => Math.max(200, prev - 40))}
-                            >
-                                <Text style={styles.sizeButtonTextSmall}>-</Text>
-                            </Pressable>
-                            <Pressable
-                                style={styles.sizeButtonSmall}
-                                onPress={() => setBoardSize(prev => Math.min(SCREEN_WIDTH - 20, prev + 40))}
-                            >
-                                <Text style={styles.sizeButtonTextSmall}>+</Text>
-                            </Pressable>
                         </View>
                     </View>
-                </View>
-            </SafeAreaView>
+                </SafeAreaView>
 
-            <CelebrationOverlay visible={showCelebration} message={`${surpriseReward.emoji} ${surpriseReward.name}`} />
-        </LinearGradient>
+                <CelebrationOverlay visible={showCelebration} message={`${surpriseReward.emoji} ${surpriseReward.name}`} />
+            </LinearGradient>
+        </GestureHandlerRootView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1 },
-    safeArea: { flex: 1, padding: spacing.md },
-
-    // Mode selection
+    safeArea: { flex: 1 },
     modeSelectContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
     modeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white, marginBottom: spacing.sm },
-    modeSubtitle: { fontSize: fontSize.lg, color: 'rgba(255,255,255,0.8)', marginBottom: spacing.xl },
+
+    tutorialContainer: { alignItems: 'center', marginVertical: spacing.xl },
+    tutorialText: { color: colors.white, fontSize: fontSize.md, marginTop: spacing.md, textAlign: 'center', maxWidth: 300 },
+
     modeButtonsContainer: { gap: spacing.lg, width: '100%', maxWidth: 300 },
     modeButton: {
         backgroundColor: 'rgba(255,255,255,0.2)',
@@ -454,76 +437,44 @@ const styles = StyleSheet.create({
     modeButtonTitle: { fontSize: fontSize.xl, fontWeight: 'bold', color: colors.white },
     modeButtonDesc: { fontSize: fontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: spacing.xs },
 
-    // In-game size controls
-    sizeControlContainerInGame: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingBottom: spacing.sm, opacity: 0.8 },
-    sizeLabelInGame: { color: colors.white, fontSize: fontSize.xs },
-    sizeButtonsInGame: { flexDirection: 'row', gap: spacing.xs },
-    sizeButtonSmall: { backgroundColor: 'rgba(255,255,255,0.2)', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
-    sizeButtonTextSmall: { color: colors.white, fontSize: 18, fontWeight: 'bold', lineHeight: 22 },
-
-    backButtonAbsolute: { position: 'absolute', top: 60, left: 20, padding: spacing.sm },
-
-    // Header
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-    backButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+    backButtonAbsolute: { position: 'absolute', top: 20, left: 20, padding: spacing.sm },
     backButtonText: { color: colors.white, fontSize: fontSize.md, fontWeight: '600' },
-    scoreContainer: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
-        borderRadius: borderRadius.md,
-    },
-    timerContainer: { backgroundColor: 'rgba(255,193,7,0.4)' },
-    scoreLabel: { color: 'rgba(255,255,255,0.8)', fontSize: fontSize.xs },
-    scoreValue: { color: colors.white, fontSize: fontSize.lg, fontWeight: 'bold' },
-    roundContainer: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.md,
-        paddingVertical: spacing.xs,
-        borderRadius: borderRadius.md,
-    },
-    roundLabel: { color: 'rgba(255,255,255,0.8)', fontSize: fontSize.xs },
-    roundValue: { color: colors.white, fontSize: fontSize.lg, fontWeight: 'bold' },
 
-    // Main content - fixed layout
-    mainContent: { flex: 1, justifyContent: 'space-between' },
-    instructionsContainer: { alignItems: 'center' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md },
+    backButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+    scoreContainer: { alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', padding: spacing.sm, borderRadius: borderRadius.md },
+    scoreLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
+    scoreValue: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
+
+    mainContent: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+
+    instructionsContainer: { alignItems: 'center', marginVertical: spacing.sm },
     instructionsTitle: { color: colors.white, fontSize: fontSize.xl, fontWeight: 'bold' },
-    progressText: { color: colors.white, fontSize: fontSize.lg, fontWeight: 'bold', marginTop: spacing.xs },
+    progressText: { color: colors.white, fontSize: fontSize.lg, fontWeight: 'bold' },
 
-    // Board wrapper - centers the board and contains the message overlay
-    boardWrapper: { alignItems: 'center', justifyContent: 'center', position: 'relative' },
-    board: {
-        borderRadius: borderRadius.md,
-        overflow: 'hidden',
-        elevation: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
+    boardWrapper: { alignItems: 'center', justifyContent: 'center' },
+    board: { borderRadius: borderRadius.md, overflow: 'hidden', elevation: 8, backgroundColor: '#333' },
     boardRow: { flexDirection: 'row' },
 
-    // Message overlay - absolute positioned on top of board
-    messageOverlay: {
-        position: 'absolute',
-        top: -40,
-        backgroundColor: 'rgba(255,255,255,0.9)',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
-        borderRadius: borderRadius.full,
-        zIndex: 10,
-    },
-    successMessage: { backgroundColor: 'rgba(76,175,80,0.95)' },
-    errorMessage: { backgroundColor: 'rgba(244,67,54,0.95)' },
-    messageText: { color: colors.white, fontSize: fontSize.md, fontWeight: '600' },
+    messageOverlay: { position: 'absolute', top: -50, padding: spacing.md, borderRadius: 20, zIndex: 10 },
+    successMessage: { backgroundColor: 'green' },
+    errorMessage: { backgroundColor: 'red' },
+    messageText: { color: 'white', fontWeight: 'bold' },
 
-    hintContainer: { alignItems: 'center', paddingBottom: spacing.md },
-    hintText: { color: 'rgba(255,255,255,0.8)', fontSize: fontSize.sm, textAlign: 'center' },
+    controlsFooter: { position: 'absolute', bottom: 20, width: '100%', alignItems: 'center' },
+    hintText: { color: 'rgba(255,255,255,0.8)', marginBottom: 10 },
+    sizeControlContainerInGame: { flexDirection: 'row', gap: 20 },
+    sizeButtonSmall: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.3)', alignItems: 'center', justifyContent: 'center' },
+    sizeButtonTextSmall: { color: 'white', fontSize: 24, fontWeight: 'bold' },
 
-    // Squares
+    // Complete screen
+    completeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+    completeEmoji: { fontSize: 100, marginBottom: spacing.lg },
+    completeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white },
+    completeSubtitle: { fontSize: fontSize.lg, color: 'rgba(255,255,255,0.9)', marginTop: spacing.sm },
+    doneButton: { backgroundColor: colors.white, padding: spacing.lg, borderRadius: borderRadius.lg, marginTop: spacing.xl },
+    doneButtonText: { color: '#6B4EE6', fontWeight: 'bold', fontSize: 18 },
+
     lightSquare: { backgroundColor: '#F0D9B5' },
     darkSquare: { backgroundColor: '#B58863' },
     foundSquare: { backgroundColor: '#4CAF50' },
@@ -531,29 +482,4 @@ const styles = StyleSheet.create({
     pressedSquare: { opacity: 0.7 },
     checkEmoji: { color: colors.white, fontWeight: 'bold' },
     wrongEmoji: { color: colors.white, fontWeight: 'bold' },
-
-    // Complete screen
-    completeContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-    completeEmoji: { fontSize: 100, marginBottom: spacing.lg },
-    completeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white },
-    completeSubtitle: { fontSize: fontSize.lg, color: 'rgba(255,255,255,0.9)', marginTop: spacing.sm },
-    statsContainer: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl },
-    statBox: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.md,
-        borderRadius: borderRadius.lg,
-        alignItems: 'center',
-    },
-    statValue: { fontSize: fontSize.xl, fontWeight: 'bold', color: colors.white },
-    statLabel: { fontSize: fontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: spacing.xs },
-    speedBonusText: { color: '#FFD700', fontSize: fontSize.lg, fontWeight: 'bold', marginTop: spacing.md },
-    doneButton: {
-        backgroundColor: colors.white,
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.xl,
-        borderRadius: borderRadius.lg,
-        marginTop: spacing.xl,
-    },
-    doneButtonText: { fontSize: fontSize.lg, fontWeight: '600', color: '#6B4EE6' },
 });
