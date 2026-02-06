@@ -303,26 +303,6 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                             <Text style={styles.modeButtonDesc}>Speed + Accuracy = Victory!</Text>
                         </Pressable>
                     </View>
-
-                    {/* Board Size Controls */}
-                    <View style={styles.sizeControlContainer}>
-                        <Text style={styles.sizeLabel}>Board Size</Text>
-                        <View style={styles.sizeButtons}>
-                            <Pressable
-                                style={styles.sizeButton}
-                                onPress={() => setBoardSize(prev => Math.max(200, prev - 40))}
-                            >
-                                <Text style={styles.sizeButtonText}>−</Text>
-                            </Pressable>
-                            <Text style={styles.sizeValue}>{Math.round(boardSize)}</Text>
-                            <Pressable
-                                style={styles.sizeButton}
-                                onPress={() => setBoardSize(prev => Math.min(SCREEN_WIDTH - 20, prev + 40))}
-                            >
-                                <Text style={styles.sizeButtonText}>+</Text>
-                            </Pressable>
-                        </View>
-                    </View>
                 </SafeAreaView>
             </LinearGradient>
         );
@@ -429,6 +409,25 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                     <View style={styles.hintContainer}>
                         <Text style={styles.hintText}>💡 {pieceInfo.hint}</Text>
                     </View>
+
+                    {/* Board Size Controls (In-Game) */}
+                    <View style={styles.sizeControlContainerInGame}>
+                        <Text style={styles.sizeLabelInGame}>Board Size: {Math.round(boardSize)}</Text>
+                        <View style={styles.sizeButtonsInGame}>
+                            <Pressable
+                                style={styles.sizeButtonSmall}
+                                onPress={() => setBoardSize(prev => Math.max(200, prev - 40))}
+                            >
+                                <Text style={styles.sizeButtonTextSmall}>-</Text>
+                            </Pressable>
+                            <Pressable
+                                style={styles.sizeButtonSmall}
+                                onPress={() => setBoardSize(prev => Math.min(SCREEN_WIDTH - 20, prev + 40))}
+                            >
+                                <Text style={styles.sizeButtonTextSmall}>+</Text>
+                            </Pressable>
+                        </View>
+                    </View>
                 </View>
             </SafeAreaView>
 
@@ -456,19 +455,14 @@ const styles = StyleSheet.create({
     modeButtonEmoji: { fontSize: 48, marginBottom: spacing.sm },
     modeButtonTitle: { fontSize: fontSize.xl, fontWeight: 'bold', color: colors.white },
     modeButtonDesc: { fontSize: fontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: spacing.xs },
-    sizeControlContainer: { marginTop: spacing.xl, alignItems: 'center' },
-    sizeLabel: { color: colors.white, fontSize: fontSize.md, marginBottom: spacing.sm },
-    sizeButtons: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-    sizeButton: {
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    sizeButtonText: { color: colors.white, fontSize: 24, fontWeight: 'bold' },
-    sizeValue: { color: colors.white, fontSize: fontSize.lg, fontWeight: 'bold', minWidth: 60, textAlign: 'center' },
+
+    // In-game size controls
+    sizeControlContainerInGame: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingBottom: spacing.sm, opacity: 0.8 },
+    sizeLabelInGame: { color: colors.white, fontSize: fontSize.xs },
+    sizeButtonsInGame: { flexDirection: 'row', gap: spacing.xs },
+    sizeButtonSmall: { backgroundColor: 'rgba(255,255,255,0.2)', width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
+    sizeButtonTextSmall: { color: colors.white, fontSize: 18, fontWeight: 'bold', lineHeight: 22 },
+
     backButtonAbsolute: { position: 'absolute', top: 60, left: 20, padding: spacing.sm },
 
     // Header
