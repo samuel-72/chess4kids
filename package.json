@@ -2,7 +2,7 @@
   "name": "chess-kids",
   "version": "1.0.0",
   "main": "index.ts",
-  "homepage": "https://chessforkids.com",
+  "homepage": "https://samuel-72.github.io/chess4kids",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
