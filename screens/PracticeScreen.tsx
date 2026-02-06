@@ -12,6 +12,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fontSize, borderRadius } from '../constants/theme';
 import { getValidMoves, Position, positionToSquare, squareToPosition } from '../utils/chessLogic';
 import { PieceType } from '../stores/progressStore';
+import CelebrationOverlay from '../components/CelebrationOverlay';
+import { SoundEffects } from '../utils/soundEffects';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 360);
@@ -135,6 +137,9 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                 setMessage('Amazing! 🎉');
                 setMessageType('success');
 
+                // Play celebration sound
+                SoundEffects.celebrate();
+
                 // Spawn rewards at target position
                 const rewardX = col * SQUARE_SIZE + SQUARE_SIZE / 2;
                 const rewardY = (7 - row) * SQUARE_SIZE + SQUARE_SIZE / 2;
@@ -150,6 +155,7 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
             } else {
                 setMessage('Good move! 👍');
                 setMessageType('hint');
+                SoundEffects.move();
                 // Generate new target from new position
                 setTimeout(() => {
                     generateNewTarget();
@@ -160,6 +166,7 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
             // Invalid move
             setMessage('Knights move in an L-shape! ♞');
             setMessageType('error');
+            SoundEffects.error();
             setTimeout(() => setMessage(''), 2000);
         }
     };
@@ -295,6 +302,12 @@ export default function PracticeScreen({ piece, onBack, onComplete }: PracticeSc
                     </View>
                 </View>
             </SafeAreaView>
+
+            {/* Celebration Overlay */}
+            <CelebrationOverlay
+                visible={showCelebration}
+                message="You got it! 🌟"
+            />
         </LinearGradient>
     );
 }
