@@ -126,9 +126,8 @@ export default function LessonScreen() {
             const moves = getValidMoves(piece, square);
             setValidMoves(moves);
 
-            // FIX: Allow finding ALL moves, but cap the goal at 6 max for UI simplicity
-            // This fixes the bug where unseen valid moves were marked wrong
-            setTargetMoves(moves); // Use ALL moves as targets
+            // FIX: Removed the cap of 6. Now the user must find ALL valid moves.
+            setTargetMoves(moves);
 
             setFoundMoves(new Set());
             setWrongGuesses(new Set());
@@ -141,7 +140,7 @@ export default function LessonScreen() {
     }, [piecePosition, piece, gameMode]);
 
     useEffect(() => {
-        const goal = Math.min(targetMoves.length, 6);
+        const goal = targetMoves.length; // Full goal
         if (targetMoves.length > 0 && foundMoves.size >= goal) {
             handleRoundComplete();
         }
@@ -228,7 +227,7 @@ export default function LessonScreen() {
             setScore(prev => prev + pointsEarned);
             SoundEffects.move();
 
-            const goal = Math.min(targetMoves.length, 6);
+            const goal = targetMoves.length; // Full goal
             const remaining = goal - newFound.size;
 
             if (remaining > 0) {
@@ -340,7 +339,7 @@ export default function LessonScreen() {
 
     // MAIN GAME
     const squareSize = boardSize / 8;
-    const goalText = Math.min(targetMoves.length, 6);
+    const goalText = targetMoves.length; // Full goal
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
