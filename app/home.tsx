@@ -3,43 +3,37 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     SafeAreaView,
     Pressable,
+    Image,
+    FlatList,
+    Platform,
+    useWindowDimensions,
 } from 'react-native';
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
     FadeInDown,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
 import { useProgressStore, PieceType } from '../stores/progressStore';
-import { PieceTile } from '../components/PieceTile';
-import { colors, spacing, fontSize, borderRadius } from '../constants/theme';
+import { colors, spacing, borderRadius, fontSize } from '../constants/theme';
 import { getLessonsForPiece } from '../utils/lessonGenerator';
+import { BlurView } from 'expo-blur';
 
-const PIECES: PieceType[] = ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'];
+const PIECES: { type: PieceType; label: string; image?: any; emoji: string }[] = [
+    { type: 'pawn', label: 'The Loyal Soldier', image: require('../assets/pieces/pawn.png'), emoji: '♟️' },
+    { type: 'knight', label: 'The Brave Knight', image: require('../assets/pieces/knight.png'), emoji: '♞' },
+    { type: 'bishop', label: 'The Wise Wizard', emoji: '🧙‍♂️' },
+    { type: 'rook', label: 'The Strong Castle', emoji: '🏰' },
+    { type: 'queen', label: 'The Mighty Queen', emoji: '👑' },
+    { type: 'king', label: 'The Royal King', emoji: '🤴' },
+];
 
 export default function HomeScreen() {
     const { user, logout } = useAuthStore();
-    const { totalXP, level, streak, lessonsCompleted, getTotalCompletedLessons } = useProgressStore();
-    const totalCompleted = useMemo(() => getTotalCompletedLessons(), [lessonsCompleted]);
-
-    // Preload lessons
-    const lessonCounts = useMemo(() => {
-        const counts: Record<PieceType, { completed: number; total: number }> = {} as any;
-        PIECES.forEach(piece => {
-            const lessons = getLessonsForPiece(piece);
-            counts[piece] = {
-                completed: lessonsCompleted[piece]?.length || 0,
-                total: lessons.length,
-            };
-        });
-        return counts;
-    }, [lessonsCompleted]);
+    const { totalXP, level, streak, lessonsCompleted } = useProgressStore();
+    const { width } = useWindowDimensions();
 
     const handlePiecePress = (piece: PieceType) => {
         router.push(`/lesson/${piece}`);
@@ -50,99 +44,88 @@ export default function HomeScreen() {
         router.replace('/login');
     };
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
+    // Calculate columns based on width
+    const numColumns = width > 600 ? 3 : 2;
+
+    const renderPieceItem = ({ item, index }: { item: typeof PIECES[0], index: number }) => {
+        const completedCount = lessonsCompleted[item.type]?.length || 0;
+        const totalCount = getLessonsForPiece(item.type).length;
+        const isCompleted = completedCount === totalCount && totalCount > 0;
+
+        return (
+            <Animated.View
+                entering={FadeInDown.delay(index * 100).springify()}
+                style={[styles.gridItem, { width: (width - 48) / numColumns - 10 }]}
             >
-                {/* Header */}
-                <LinearGradient
-                    colors={[colors.primary, colors.primaryLight]}
-                    style={styles.header}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                <Pressable
+                    onPress={() => handlePiecePress(item.type)}
+                    style={({ pressed }) => [
+                        styles.pieceCard,
+                        pressed && styles.pieceCardPressed
+                    ]}
                 >
-                    <View style={styles.headerTop}>
-                        <View>
-                            <Text style={styles.greeting}>Hello, {user?.name || 'Champion'}! 👋</Text>
-                            <Text style={styles.subGreeting}>Ready to learn some chess?</Text>
+                    <LinearGradient
+                        colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
+                        style={styles.cardGradient}
+                    >
+                        <View style={styles.iconContainer}>
+                            {item.image ? (
+                                <Image source={item.image} style={styles.pieceImage} resizeMode="contain" />
+                            ) : (
+                                <Text style={styles.pieceEmoji}>{item.emoji}</Text>
+                            )}
                         </View>
-                        <Pressable onPress={handleLogout} style={styles.logoutButton}>
-                            <Text style={styles.logoutText}>👋</Text>
-                        </Pressable>
-                    </View>
 
-                    {/* Stats Row */}
-                    <View style={styles.statsRow}>
-                        <StatBadge icon="⭐" value={totalXP} label="XP" />
-                        <StatBadge icon="🏆" value={level} label="Level" />
-                        <StatBadge icon="🔥" value={streak} label="Streak" />
-                        <StatBadge icon="📚" value={totalCompleted} label="Lessons" />
-                    </View>
-                </LinearGradient>
-
-                {/* Level Progress */}
-                <Animated.View
-                    entering={FadeInDown.delay(200)}
-                    style={styles.progressSection}
-                >
-                    <Text style={styles.sectionTitle}>Your Progress</Text>
-                    <View style={styles.levelCard}>
-                        <Text style={styles.levelLabel}>Level {level}</Text>
-                        <View style={styles.levelProgress}>
-                            <View
-                                style={[
-                                    styles.levelProgressFill,
-                                    { width: `${(totalXP % 100)}%` }
-                                ]}
-                            />
+                        <View style={styles.cardContent}>
+                            <Text style={styles.pieceLabel}>{item.label}</Text>
+                            <View style={styles.progressBar}>
+                                <View style={[styles.progressFill, { width: `${(completedCount / totalCount) * 100}%` }]} />
+                            </View>
+                            <Text style={styles.progressText}>{completedCount}/{totalCount} Learned</Text>
                         </View>
-                        <Text style={styles.xpLabel}>{totalXP % 100}/100 XP to next level</Text>
-                    </View>
-                </Animated.View>
+                    </LinearGradient>
+                </Pressable>
+            </Animated.View>
+        );
+    };
 
-                {/* Piece Selection */}
-                <Animated.View
-                    entering={FadeInDown.delay(400)}
-                    style={styles.pieceSection}
-                >
-                    <Text style={styles.sectionTitle}>Choose Your Piece 🎯</Text>
-                    <Text style={styles.sectionSubtitle}>Tap a piece to start learning!</Text>
-
-                    <View style={styles.pieceGrid}>
-                        {PIECES.map((piece, index) => (
-                            <Animated.View
-                                key={piece}
-                                entering={FadeInDown.delay(500 + index * 100)}
-                            >
-                                <PieceTile
-                                    piece={piece}
-                                    completedLessons={lessonCounts[piece].completed}
-                                    totalLessons={lessonCounts[piece].total}
-                                    onPress={() => handlePiecePress(piece)}
-                                />
-                            </Animated.View>
-                        ))}
-                    </View>
-                </Animated.View>
-            </ScrollView>
-        </SafeAreaView>
-    );
-}
-
-interface StatBadgeProps {
-    icon: string;
-    value: number;
-    label: string;
-}
-
-function StatBadge({ icon, value, label }: StatBadgeProps) {
     return (
-        <View style={styles.statBadge}>
-            <Text style={styles.statIcon}>{icon}</Text>
-            <Text style={styles.statValue}>{value}</Text>
-            <Text style={styles.statLabel}>{label}</Text>
+        <View style={styles.container}>
+            <LinearGradient
+                colors={['#1a2a6c', '#b21f1f', '#fdbb2d']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
+
+            <SafeAreaView style={styles.safeArea}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <View>
+                        <Text style={styles.greeting}>Hi, {user?.name || 'Champion'}!</Text>
+                        <Text style={styles.subGreeting}>Level {level} • {totalXP} XP</Text>
+                    </View>
+                    <Pressable onPress={handleLogout} style={styles.logoutButton}>
+                        <Text style={styles.logoutText}>🚪</Text>
+                    </Pressable>
+                </View>
+
+                {/* Grid */}
+                <FlatList
+                    data={PIECES}
+                    renderItem={renderPieceItem}
+                    keyExtractor={item => item.type}
+                    numColumns={numColumns}
+                    key={numColumns} // Force re-render on orientation change
+                    contentContainerStyle={styles.listContent}
+                    columnWrapperStyle={styles.columnWrapper}
+                    ListHeaderComponent={
+                        <View style={styles.listHeader}>
+                            <Text style={styles.sectionTitle}>Choose Your Warrior</Text>
+                        </View>
+                    }
+                />
+            </SafeAreaView>
         </View>
     );
 }
@@ -150,123 +133,121 @@ function StatBadge({ icon, value, label }: StatBadgeProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
-    scrollContent: {
-        paddingBottom: spacing.xxl,
+    safeArea: {
+        flex: 1,
     },
     header: {
-        padding: spacing.lg,
-        paddingTop: spacing.md,
-        borderBottomLeftRadius: borderRadius.xl,
-        borderBottomRightRadius: borderRadius.xl,
-    },
-    headerTop: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: spacing.lg,
+        paddingHorizontal: spacing.xl,
+        paddingTop: Platform.OS === 'android' ? 40 : spacing.md,
+        paddingBottom: spacing.lg,
     },
     greeting: {
-        fontSize: fontSize.xl,
+        fontSize: fontSize.xxl,
         fontWeight: 'bold',
         color: colors.white,
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     subGreeting: {
         fontSize: fontSize.md,
-        color: 'rgba(255, 255, 255, 0.8)',
-        marginTop: spacing.xs,
+        color: 'rgba(255,255,255,0.9)',
+        fontWeight: '600',
     },
     logoutButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        backgroundColor: 'rgba(0,0,0,0.2)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     logoutText: {
-        fontSize: fontSize.xl,
+        fontSize: 20,
     },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        marginTop: spacing.sm,
+    listContent: {
+        paddingHorizontal: spacing.lg,
+        paddingBottom: spacing.xxl,
     },
-    statBadge: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        paddingVertical: spacing.sm,
-        paddingHorizontal: spacing.md,
-        borderRadius: borderRadius.md,
-        minWidth: 70,
+    columnWrapper: {
+        justifyContent: 'space-between',
     },
-    statIcon: {
-        fontSize: fontSize.lg,
-    },
-    statValue: {
-        fontSize: fontSize.lg,
-        fontWeight: 'bold',
-        color: colors.white,
-    },
-    statLabel: {
-        fontSize: fontSize.xs,
-        color: 'rgba(255, 255, 255, 0.8)',
-    },
-    progressSection: {
-        padding: spacing.lg,
+    listHeader: {
+        marginBottom: spacing.lg,
     },
     sectionTitle: {
-        fontSize: fontSize.lg,
+        fontSize: fontSize.xl,
         fontWeight: 'bold',
-        color: colors.text,
-        marginBottom: spacing.sm,
+        color: 'rgba(255,255,255,0.9)',
+        textAlign: 'center',
+        marginTop: spacing.md,
     },
-    sectionSubtitle: {
-        fontSize: fontSize.sm,
-        color: colors.textLight,
-        marginBottom: spacing.md,
+    gridItem: {
+        marginBottom: spacing.lg,
     },
-    levelCard: {
-        backgroundColor: colors.card,
-        padding: spacing.lg,
-        borderRadius: borderRadius.lg,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+    pieceCard: {
+        borderRadius: borderRadius.xl,
+        overflow: 'hidden',
+        height: 200,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        shadowColor: 'black',
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 4 },
         shadowRadius: 8,
-        elevation: 3,
     },
-    levelLabel: {
+    pieceCardPressed: {
+        transform: [{ scale: 0.98 }],
+        opacity: 0.9,
+    },
+    cardGradient: {
+        flex: 1,
+        padding: spacing.md,
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    iconContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: spacing.sm,
+    },
+    pieceImage: {
+        width: 100,
+        height: 100,
+    },
+    pieceEmoji: {
+        fontSize: 80,
+    },
+    cardContent: {
+        width: '100%',
+        alignItems: 'center',
+        gap: spacing.xs,
+    },
+    pieceLabel: {
         fontSize: fontSize.md,
-        fontWeight: '600',
-        color: colors.text,
-        marginBottom: spacing.sm,
+        fontWeight: 'bold',
+        color: colors.white,
+        textAlign: 'center',
     },
-    levelProgress: {
-        height: 12,
-        backgroundColor: colors.boardLight,
-        borderRadius: 6,
+    progressBar: {
+        width: '100%',
+        height: 6,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderRadius: 3,
         overflow: 'hidden',
     },
-    levelProgressFill: {
+    progressFill: {
         height: '100%',
-        backgroundColor: colors.success,
-        borderRadius: 6,
+        backgroundColor: '#4CAF50',
     },
-    xpLabel: {
-        fontSize: fontSize.sm,
-        color: colors.textLight,
-        marginTop: spacing.sm,
-        textAlign: 'right',
-    },
-    pieceSection: {
-        padding: spacing.lg,
-        paddingTop: 0,
-    },
-    pieceGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'center',
+    progressText: {
+        fontSize: fontSize.xs,
+        color: 'rgba(255,255,255,0.7)',
     },
 });

@@ -1,289 +1,236 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     Pressable,
-    SafeAreaView,
     Dimensions,
+    ImageBackground,
+    Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
+    FadeInDown,
+    FadeInUp,
     useAnimatedStyle,
     useSharedValue,
-    withSpring,
     withRepeat,
-    withSequence,
     withTiming,
+    Easing,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useAuthStore } from '../stores/authStore';
-import { colors, spacing, fontSize, borderRadius } from '../constants/theme';
+import { colors, spacing, borderRadius, fontSize } from '../constants/theme';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-
 export default function LoginScreen() {
-    const { loginAsGuest } = useAuthStore();
+    const { loginWithGoogle, loginAsGuest, isAuthenticated, user } = useAuthStore();
 
-    // Animated chess pieces
-    const knightY = useSharedValue(0);
-    const queenRotate = useSharedValue(0);
+    // Loop animation for background float
+    const floatY = useSharedValue(0);
 
-    React.useEffect(() => {
-        knightY.value = withRepeat(
-            withSequence(
-                withTiming(-10, { duration: 1000 }),
-                withTiming(0, { duration: 1000 })
-            ),
-            -1,
-            true
-        );
-        queenRotate.value = withRepeat(
-            withSequence(
-                withTiming(-5, { duration: 2000 }),
-                withTiming(5, { duration: 2000 })
-            ),
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            router.replace('/home');
+        }
+    }, [isAuthenticated, user]);
+
+    useEffect(() => {
+        floatY.value = withRepeat(
+            withTiming(20, { duration: 4000, easing: Easing.inOut(Easing.quad) }),
             -1,
             true
         );
     }, []);
 
-    const knightStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: knightY.value }],
-    }));
-
-    const queenStyle = useAnimatedStyle(() => ({
-        transform: [{ rotateZ: `${queenRotate.value}deg` }],
-    }));
-
-    const handleGoogleLogin = () => {
-        // For MVP, just use guest login
-        // In production, implement Google OAuth
-        loginAsGuest();
-        router.replace('/home');
-    };
-
-    const handleAppleLogin = () => {
-        // For MVP, just use guest login
-        // In production, implement Apple Sign-In
-        loginAsGuest();
-        router.replace('/home');
-    };
-
-    const handleGuestLogin = () => {
-        loginAsGuest();
-        router.replace('/home');
-    };
-
-    return (
-        <LinearGradient
-            colors={[colors.primary, colors.primaryDark, '#2D1B69']}
-            style={styles.container}
-        >
-            <SafeAreaView style={styles.safeArea}>
-                {/* Animated decorative pieces */}
-                <View style={styles.decorations}>
-                    <Animated.Text style={[styles.decorPiece, styles.knight, knightStyle]}>
-                        ♞
-                    </Animated.Text>
-                    <Animated.Text style={[styles.decorPiece, styles.queen, queenStyle]}>
-                        ♛
-                    </Animated.Text>
-                    <Text style={[styles.decorPiece, styles.pawn]}>♟</Text>
-                    <Text style={[styles.decorPiece, styles.rook]}>♜</Text>
-                </View>
-
-                {/* Logo and Title */}
-                <View style={styles.header}>
-                    <Text style={styles.logoEmoji}>♚</Text>
-                    <Text style={styles.title}>Chess Kids</Text>
-                    <Text style={styles.subtitle}>Learn Chess the Fun Way! 🎉</Text>
-                </View>
-
-                {/* Login buttons */}
-                <View style={styles.buttonContainer}>
-                    <LoginButton
-                        onPress={handleGoogleLogin}
-                        icon="🔵"
-                        label="Continue with Google"
-                        backgroundColor="#FFFFFF"
-                        textColor="#333333"
-                    />
-
-                    <LoginButton
-                        onPress={handleAppleLogin}
-                        icon="🍎"
-                        label="Continue with Apple"
-                        backgroundColor="#000000"
-                        textColor="#FFFFFF"
-                    />
-
-                    <View style={styles.divider}>
-                        <View style={styles.dividerLine} />
-                        <Text style={styles.dividerText}>or</Text>
-                        <View style={styles.dividerLine} />
-                    </View>
-
-                    <LoginButton
-                        onPress={handleGuestLogin}
-                        icon="🎮"
-                        label="Play as Guest"
-                        backgroundColor={colors.secondary}
-                        textColor="#FFFFFF"
-                    />
-                </View>
-
-                {/* Footer */}
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Made with ❤️ for little champions
-                    </Text>
-                </View>
-            </SafeAreaView>
-        </LinearGradient>
-    );
-}
-
-interface LoginButtonProps {
-    onPress: () => void;
-    icon: string;
-    label: string;
-    backgroundColor: string;
-    textColor: string;
-}
-
-function LoginButton({ onPress, icon, label, backgroundColor, textColor }: LoginButtonProps) {
-    const scale = useSharedValue(1);
-
-    const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
+    const animatedBgStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: floatY.value }],
     }));
 
     return (
-        <AnimatedPressable
-            style={[styles.button, { backgroundColor }, animatedStyle]}
-            onPressIn={() => { scale.value = withSpring(0.95); }}
-            onPressOut={() => { scale.value = withSpring(1); }}
-            onPress={onPress}
-        >
-            <Text style={styles.buttonIcon}>{icon}</Text>
-            <Text style={[styles.buttonLabel, { color: textColor }]}>{label}</Text>
-        </AnimatedPressable>
+        <View style={styles.container}>
+            {/* Animated Background Gradient */}
+            <LinearGradient
+                colors={['#1a2a6c', '#b21f1f', '#fdbb2d']}
+                style={StyleSheet.absoluteFill}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+            />
+
+            {/* Optional: Add a subtle texture or stars image here if available */}
+            <Animated.View style={[StyleSheet.absoluteFill, animatedBgStyle]}>
+                <LinearGradient
+                    colors={['rgba(0,0,0,0)', 'rgba(255,255,255,0.1)', 'rgba(0,0,0,0)']}
+                    style={{ width: '200%', height: '200%', transform: [{ rotate: '45deg' }] }}
+                />
+            </Animated.View>
+
+            <View style={styles.content}>
+                {/* Logo / Title Area */}
+                <Animated.View entering={FadeInUp.delay(300).springify()} style={styles.titleContainer}>
+                    <Text style={styles.emojiIcon}>♟️</Text>
+                    <Text style={styles.title}>Chess For Kids</Text>
+                    <Text style={styles.subtitle}>Master the Game of Kings</Text>
+                </Animated.View>
+
+                {/* Glassmorphism Card */}
+                <Animated.View entering={FadeInDown.delay(600).springify()} style={styles.cardContainer}>
+                    <BlurView intensity={Platform.OS === 'web' ? 80 : 30} tint="dark" style={styles.glassCard}>
+
+                        <Pressable
+                            style={({ pressed }) => [styles.button, styles.googleButton, pressed && styles.buttonPressed]}
+                            onPress={loginWithGoogle}
+                        >
+                            <Ionicons name="logo-google" size={24} color="#DB4437" style={{ marginRight: 10 }} />
+                            <Text style={styles.googleButtonText}>Continue with Google</Text>
+                        </Pressable>
+
+                        <Pressable
+                            style={({ pressed }) => [styles.button, styles.appleButton, pressed && styles.buttonPressed]}
+                            onPress={() => alert("Apple Sign-In coming soon!")}
+                        >
+                            <Ionicons name="logo-apple" size={24} color="white" style={{ marginRight: 10 }} />
+                            <Text style={styles.appleButtonText}>Continue with Apple</Text>
+                        </Pressable>
+
+                        <View style={styles.divider}>
+                            <View style={styles.line} />
+                            <Text style={styles.orText}>OR</Text>
+                            <View style={styles.line} />
+                        </View>
+
+                        <Pressable
+                            style={({ pressed }) => [styles.button, styles.guestButton, pressed && styles.buttonPressed]}
+                            onPress={loginAsGuest}
+                        >
+                            <Text style={styles.guestButtonText}>Play as Guest 👋</Text>
+                        </Pressable>
+
+                    </BlurView>
+                </Animated.View>
+            </View>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    safeArea: {
-        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: spacing.xl,
     },
-    decorations: {
-        ...StyleSheet.absoluteFillObject,
-        overflow: 'hidden',
+    content: {
+        width: '100%',
+        maxWidth: 400,
+        height: '100%',
+        justifyContent: 'center',
+        padding: spacing.xl,
     },
-    decorPiece: {
-        position: 'absolute',
-        fontSize: 60,
-        opacity: 0.15,
-        color: '#FFFFFF',
-    },
-    knight: {
-        top: '10%',
-        right: '5%',
-        fontSize: 80,
-    },
-    queen: {
-        top: '25%',
-        left: '5%',
-        fontSize: 70,
-    },
-    pawn: {
-        bottom: '20%',
-        right: '10%',
-        fontSize: 50,
-    },
-    rook: {
-        bottom: '30%',
-        left: '8%',
-        fontSize: 55,
-    },
-    header: {
+    titleContainer: {
         alignItems: 'center',
-        marginTop: height * 0.1,
+        marginBottom: spacing.xxl,
     },
-    logoEmoji: {
+    emojiIcon: {
         fontSize: 80,
         marginBottom: spacing.md,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 10 },
+        textShadowRadius: 20,
     },
     title: {
-        fontSize: fontSize.giant,
-        fontWeight: 'bold',
+        fontSize: 48,
+        fontWeight: '900',
         color: colors.white,
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 4,
+        textAlign: 'center',
+        textShadowColor: 'rgba(0,0,0,0.3)',
+        textShadowOffset: { width: 0, height: 4 },
+        textShadowRadius: 10,
+        letterSpacing: 1,
     },
     subtitle: {
         fontSize: fontSize.lg,
-        color: 'rgba(255, 255, 255, 0.9)',
+        color: 'rgba(255,255,255,0.8)',
         marginTop: spacing.sm,
+        fontWeight: '500',
     },
-    buttonContainer: {
-        width: '100%',
-        paddingHorizontal: spacing.xl,
+    cardContainer: {
+        borderRadius: borderRadius.xl,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.2)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.4,
+        shadowRadius: 30,
+        elevation: 20,
+    },
+    glassCard: {
+        padding: spacing.xl,
         alignItems: 'center',
+        gap: spacing.md,
     },
     button: {
+        width: '100%',
+        height: 56,
+        borderRadius: borderRadius.lg,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        width: '100%',
-        paddingVertical: spacing.md,
-        paddingHorizontal: spacing.lg,
-        borderRadius: borderRadius.lg,
-        marginBottom: spacing.md,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
-        elevation: 5,
+        elevation: 4,
     },
-    buttonIcon: {
-        fontSize: fontSize.xl,
-        marginRight: spacing.sm,
+    buttonPressed: {
+        transform: [{ scale: 0.98 }],
+        opacity: 0.9,
     },
-    buttonLabel: {
+    googleButton: {
+        backgroundColor: colors.white,
+    },
+    googleButtonText: {
         fontSize: fontSize.md,
         fontWeight: '600',
+        color: colors.text,
+    },
+    appleButton: {
+        backgroundColor: '#000',
+        marginTop: spacing.sm,
+    },
+    appleButtonText: {
+        fontSize: fontSize.md,
+        fontWeight: '600',
+        color: 'white',
+    },
+    guestButton: {
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    guestButtonText: {
+        fontSize: fontSize.md,
+        fontWeight: '600',
+        color: colors.white,
     },
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: spacing.md,
         width: '100%',
+        marginVertical: spacing.md,
     },
-    dividerLine: {
+    line: {
         flex: 1,
         height: 1,
-        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        backgroundColor: 'rgba(255,255,255,0.2)',
     },
-    dividerText: {
-        color: 'rgba(255, 255, 255, 0.7)',
+    orText: {
+        color: 'rgba(255,255,255,0.5)',
         marginHorizontal: spacing.md,
         fontSize: fontSize.sm,
-    },
-    footer: {
-        alignItems: 'center',
-    },
-    footerText: {
-        color: 'rgba(255, 255, 255, 0.7)',
-        fontSize: fontSize.sm,
+        fontWeight: '600',
     },
 });

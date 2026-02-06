@@ -19,6 +19,7 @@ interface AuthState {
     // Actions
     login: (user: User) => void;
     loginAsGuest: () => void;
+    loginWithGoogle: () => Promise<void>;
     logout: () => void;
     setLoading: (loading: boolean) => void;
 }
@@ -47,6 +48,53 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: true,
                 isLoading: false,
             }),
+
+            loginWithGoogle: async () => {
+                set({ isLoading: true });
+                try {
+                    // Dynamic import to avoid crash if firebase isn't configured
+                    const { auth, GoogleAuthProvider, signInWithPopup } = await import('../utils/firebaseConfig');
+
+                    if (!auth) {
+                        // Fallback to mock if no config
+                        console.log("Using Mock Auth (No Firebase Config)");
+                        setTimeout(() => {
+                            set({
+                                user: {
+                                    id: 'guest-mock',
+                                    name: 'Champion',
+                                    email: 'mock@example.com',
+                                    provider: 'guest',
+                                    createdAt: Date.now()
+                                },
+                                isAuthenticated: true,
+                                isLoading: false,
+                            });
+                        }, 1000);
+                        return;
+                    }
+
+                    const provider = new GoogleAuthProvider();
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+
+                    set({
+                        user: {
+                            id: user.uid,
+                            name: user.displayName || 'Champion',
+                            email: user.email || '',
+                            provider: 'google',
+                            createdAt: Date.now()
+                        },
+                        isAuthenticated: true,
+                        isLoading: false,
+                    });
+                } catch (error: any) {
+                    console.error("Login Error:", error);
+                    set({ isLoading: false });
+                    alert("Login failed: " + error.message);
+                }
+            },
 
             logout: () => set({
                 user: null,
