@@ -29,9 +29,6 @@
       "favicon": "./assets/favicon.png",
       "bundler": "metro",
       "output": "single"
-    },
-    "experiments": {
-      "baseUrl": "/chess4kids/"
     }
   }
 }
