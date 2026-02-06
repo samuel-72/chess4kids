@@ -2,18 +2,46 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
+import DebugOverlay from '../components/DebugOverlay';
 
 export default function RootLayout() {
     const { initAuthListener } = useAuthStore();
 
     useEffect(() => {
         // Initialize the auth listener on app mount
-        // This handles persistent sessions and redirect results
         if (Platform.OS === 'web') {
             initAuthListener();
+
+            // CRITICAL CSS FIX for Mobile Web
+            if (typeof window !== 'undefined') {
+                const style = document.createElement('style');
+                style.textContent = `
+                    html, body, #root { 
+                        height: 100%; 
+                        width: 100%;
+                        overflow: hidden; 
+                        margin: 0;
+                        padding: 0;
+                        background-color: ${colors.background};
+                    }
+                    /* Ensure touch actions work correctly */
+                    body {
+                        -webkit-touch-callout: none;
+                        -webkit-user-select: none;
+                        user-select: none;
+                    }
+                    /* Allow text selection in inputs */
+                    input, textarea {
+                        -webkit-user-select: text;
+                        user-select: text;
+                    }
+                `;
+                document.head.appendChild(style);
+                console.log('Mobile Web CSS Fix Injected');
+            }
         }
     }, []);
 
@@ -27,6 +55,8 @@ export default function RootLayout() {
                     animation: 'slide_from_right',
                 }}
             />
+            {/* INJECT DEBUG OVERLAY */}
+            <DebugOverlay />
         </GestureHandlerRootView>
     );
 }
