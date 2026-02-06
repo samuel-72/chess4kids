@@ -4,8 +4,9 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from './stores/authStore';
 import { colors, spacing, fontSize, borderRadius } from './constants/theme';
+import PracticeScreen from './screens/PracticeScreen';
 
-type Screen = 'loading' | 'login' | 'home' | 'lesson';
+type Screen = 'loading' | 'login' | 'home' | 'lesson' | 'practice';
 type PieceName = 'pawn' | 'knight' | 'bishop' | 'rook' | 'queen' | 'king';
 
 const PIECES: { name: PieceName; emoji: string; label: string; color: string }[] = [
@@ -124,10 +125,12 @@ function HomeScreen({
 
 function LessonScreen({
   piece,
-  onBack
+  onBack,
+  onPractice,
 }: {
   piece: PieceName;
   onBack: () => void;
+  onPractice: () => void;
 }) {
   const lesson = PIECE_LESSONS[piece];
   const pieceData = PIECES.find(p => p.name === piece)!;
@@ -169,7 +172,7 @@ function LessonScreen({
             })}
           </View>
 
-          <Pressable style={styles.practiceButton}>
+          <Pressable style={styles.practiceButton} onPress={onPractice}>
             <Text style={styles.practiceButtonText}>🎮 Practice Moving!</Text>
           </Pressable>
         </ScrollView>
@@ -212,11 +215,21 @@ export default function App() {
     return <LoginScreen onNavigate={() => setCurrentScreen('home')} />;
   }
 
+  if (currentScreen === 'practice' && selectedPiece) {
+    return (
+      <PracticeScreen
+        piece={selectedPiece}
+        onBack={() => setCurrentScreen('lesson')}
+      />
+    );
+  }
+
   if (currentScreen === 'lesson' && selectedPiece) {
     return (
       <LessonScreen
         piece={selectedPiece}
         onBack={() => setCurrentScreen('home')}
+        onPractice={() => setCurrentScreen('practice')}
       />
     );
   }
