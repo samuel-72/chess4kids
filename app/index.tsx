@@ -9,11 +9,16 @@ export default function Index() {
 
     useEffect(() => {
         if (!isLoading) {
-            if (isAuthenticated) {
-                router.replace('/home');
-            } else {
-                router.replace('/login');
-            }
+            // Small delay to ensure RootLayout is mounted before navigating
+            // Fixes: "Attempted to navigate before mounting the Root Layout component"
+            const timer = setTimeout(() => {
+                if (isAuthenticated) {
+                    router.replace('/home');
+                } else {
+                    router.replace('/login');
+                }
+            }, 100);
+            return () => clearTimeout(timer);
         }
     }, [isAuthenticated, isLoading]);
 
