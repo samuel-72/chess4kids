@@ -34,13 +34,13 @@ const SURPRISE_REWARDS = [
     { emoji: '👑', name: 'Golden Crown!' },
 ];
 
-const REAL_PIECES: Record<PieceType, string> = {
-    pawn: '♙',
-    knight: '♘',
-    bishop: '♗',
-    rook: '♖',
-    queen: '♕',
-    king: '♔',
+const REAL_PIECES: Record<PieceType, any> = {
+    pawn: require('../../assets/standard_pieces/pawn.png'),
+    knight: require('../../assets/standard_pieces/knight.png'),
+    bishop: require('../../assets/standard_pieces/bishop.png'),
+    rook: require('../../assets/standard_pieces/rook.png'),
+    queen: require('../../assets/standard_pieces/queen.png'),
+    king: require('../../assets/standard_pieces/king.png'),
 };
 
 type GameMode = 'practice' | 'fastest_finger';
@@ -467,16 +467,19 @@ export default function LessonScreen() {
                 )}
 
                 {isFriendlyHere && friendlyHere && (
-                    <Text style={{
-                        fontSize: squareSize * 0.8,
-                        color: 'white',
-                        // Add shadow/outline for visibility on dark/light squares
-                        textShadowColor: 'black',
-                        textShadowOffset: { width: 1, height: 1 },
-                        textShadowRadius: 2
-                    }}>
-                        {REAL_PIECES[friendlyHere.type]}
-                    </Text>
+                    <Image
+                        source={REAL_PIECES[friendlyHere.type]}
+                        style={{
+                            width: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
+                            height: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
+                            // Shadow for visibility
+                            shadowColor: '#000',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.3,
+                            shadowRadius: 2,
+                        }}
+                        resizeMode="contain"
+                    />
                 )}
 
                 {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
