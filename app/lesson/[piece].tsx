@@ -451,8 +451,8 @@ export default function LessonScreen() {
                         friendlies: prev.friendlies.map(p =>
                             (p.row === row && p.col === rookSrcCol && p.type === 'rook')
                                 ? { ...p, col: rookDstCol }
-                                : p
-                        )
+                                : p),
+                        piecePos: { row: piecePosition.row, col: col }
                     }));
                 } else {
                     setMessage(`+ ${pointsEarned}${bonusText} ${remaining} left!`);
@@ -527,19 +527,32 @@ export default function LessonScreen() {
                 )}
 
                 {isFriendlyHere && friendlyHere && (
-                    <Image
-                        source={REAL_PIECES[friendlyHere.type]}
-                        style={{
-                            width: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
-                            height: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
-                            // Shadow for visibility
-                            shadowColor: '#000',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.3,
-                            shadowRadius: 2,
-                        }}
-                        resizeMode="contain"
-                    />
+                    // Special case: Castling Rook should be Emoji (like landing page)
+                    piece === 'king' && friendlyHere.type === 'rook' ? (
+                        <Text style={{
+                            fontSize: squareSize * 0.8,
+                            color: 'white',
+                            textShadowColor: 'black',
+                            textShadowOffset: { width: 1, height: 1 },
+                            textShadowRadius: 2
+                        }}>
+                            ♖
+                        </Text>
+                    ) : (
+                        <Image
+                            source={REAL_PIECES[friendlyHere.type]}
+                            style={{
+                                width: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
+                                height: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
+                                // Shadow for visibility
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.3,
+                                shadowRadius: 2,
+                            }}
+                            resizeMode="contain"
+                        />
+                    )
                 )}
 
                 {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
