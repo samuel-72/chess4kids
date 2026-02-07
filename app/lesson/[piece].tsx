@@ -77,17 +77,39 @@ export default function LessonScreen() {
         ]
     }));
 
-    // Get appropriate starting position based on piece type
-    const getRandomPosition = useCallback((): Position => {
+    // Generate a scenario (piece position + enemies)
+    const generateScenario = useCallback((): { piecePos: Position; enemies: Position[] } => {
+        let piecePos: Position;
+        const enemies: Position[] = [];
+
         switch (piece) {
             case 'pawn':
-                return { row: 1 + Math.floor(Math.random() * 2), col: Math.floor(Math.random() * 8) };
+                // Row 1-5 (Rank 2-6) to allow movement
+                piecePos = {
+                    row: 1 + Math.floor(Math.random() * 5),
+                    col: Math.floor(Math.random() * 8)
+                };
+
+                // 50% chance to add an enemy for capture potential
+                if (Math.random() > 0.5) {
+                    const side = Math.random() > 0.5 ? 1 : -1;
+                    const enemyPos = { row: piecePos.row + 1, col: piecePos.col + side };
+                    // Ensure enemy is on board
+                    if (enemyPos.col >= 0 && enemyPos.col < 8 && enemyPos.row < 8) {
+                        enemies.push(enemyPos);
+                    }
+                }
+                break;
             default:
-                return { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
+                piecePos = { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
+                break;
         }
+        return { piecePos, enemies };
     }, [piece]);
 
-    const [piecePosition, setPiecePosition] = useState<Position>(getRandomPosition);
+    // Initialize state
+    const [scenario, setScenario] = useState(generateScenario);
+    const { piecePos: piecePosition, enemies } = scenario; // Derived for easier usage
     const [validMoves, setValidMoves] = useState<string[]>([]);
     const [targetMoves, setTargetMoves] = useState<string[]>([]);
     const [foundMoves, setFoundMoves] = useState<Set<string>>(new Set());
@@ -126,7 +148,7 @@ export default function LessonScreen() {
     useEffect(() => {
         if (gameMode) {
             const square = positionToSquare(piecePosition);
-            const moves = getValidMoves(piece, square);
+            const moves = getValidMoves(piece, square, enemies);
             setValidMoves(moves);
 
             // FIX: Removed the cap of 6. Now the user must find ALL valid moves.
@@ -140,7 +162,7 @@ export default function LessonScreen() {
                 setIsTimerRunning(true);
             }
         }
-    }, [piecePosition, piece, gameMode]);
+    }, [piecePosition, enemies, piece, gameMode]);
 
     useEffect(() => {
         const goal = targetMoves.length; // Full goal
@@ -187,7 +209,15 @@ export default function LessonScreen() {
             setTimeout(() => {
                 setShowCelebration(false);
                 setRound(prev => prev + 1);
-                setPiecePosition(getRandomPosition());
+
+                // Generate NEW scenario
+                let newScenario = generateScenario();
+                // Simple retry once if position matches (to improve perceived randomness)
+                if (newScenario.piecePos.row === piecePosition.row && newScenario.piecePos.col === piecePosition.col) {
+                    newScenario = generateScenario();
+                }
+                setScenario(newScenario);
+
                 setMessage(`Round ${round + 1}!`);
                 setMessageType('hint');
                 setTimeout(() => setMessage(''), 1500);
@@ -270,6 +300,9 @@ export default function LessonScreen() {
         const isLight = (row + col) % 2 === 1; // Corrected lightness check (usually light is even sum? wait, a1 (0,0) is dark. 0+0=0. b1 (0,1) is light. 0+1=1. So odd sum is light.)
         const squareName = positionToSquare({ row, col });
         const isPieceHere = piecePosition.row === row && piecePosition.col === col;
+        // Check for enemies
+        const isEnemyHere = enemies.some(e => e.row === row && e.col === col);
+
         const isFound = foundMoves.has(squareName);
         const isWrong = wrongGuesses.has(squareName);
 
@@ -293,7 +326,14 @@ export default function LessonScreen() {
                         resizeMode="contain"
                     />
                 )}
-                {isFound && !isPieceHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
+
+                {isEnemyHere && (
+                    <Text style={{ fontSize: squareSize * 0.7, color: 'black' }}>♟</Text>
+                )}
+
+                {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
+                {isFound && isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5, color: '#FFF', position: 'absolute', zIndex: 2 }]}>⚔️</Text>}
+
                 {isWrong && <Text style={[styles.wrongEmoji, { fontSize: squareSize * 0.5 }]}>✗</Text>}
             </Pressable>
         );

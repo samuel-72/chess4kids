@@ -22,28 +22,37 @@ export function isValidPosition(pos: Position): boolean {
     return pos.row >= 0 && pos.row < 8 && pos.col >= 0 && pos.col < 8;
 }
 
-// Get valid moves for a piece from a given position
-export function getValidMoves(piece: PieceType, fromSquare: Square): Square[] {
+// Get valid moves for a piece from a given position, considering occupied squares (enemies)
+export function getValidMoves(piece: PieceType, fromSquare: Square, occupiedSquares: Position[] = []): Square[] {
     const from = squareToPosition(fromSquare);
     const validMoves: Square[] = [];
 
+    // Helper to check if a position is occupied by an enemy
+    const isOccupied = (r: number, c: number) => occupiedSquares.some(pos => pos.row === r && pos.col === c);
+
     switch (piece) {
         case 'pawn':
-            // Simplified pawn moves (forward only, assuming white)
-            const pawnMoves = [
-                { row: from.row + 1, col: from.col }, // Forward 1
-            ];
-            // Starting position can move 2
-            if (from.row === 1) {
-                pawnMoves.push({ row: from.row + 2, col: from.col });
+            // Forward 1 (Valid if NOT occupied)
+            if (!isOccupied(from.row + 1, from.col)) {
+                const f1 = { row: from.row + 1, col: from.col };
+                if (isValidPosition(f1)) validMoves.push(positionToSquare(f1));
+
+                // Forward 2 (Valid if Row 1 AND f1 empty AND f2 empty)
+                if (from.row === 1) {
+                    const f2 = { row: from.row + 2, col: from.col };
+                    if (!isOccupied(from.row + 2, from.col) && isValidPosition(f2)) {
+                        validMoves.push(positionToSquare(f2));
+                    }
+                }
             }
-            // Diagonal captures (we'll show these as valid move targets)
-            pawnMoves.push(
+
+            // Diagonal captures (Valid ONLY if occupied by enemy)
+            const diagonals = [
                 { row: from.row + 1, col: from.col - 1 },
                 { row: from.row + 1, col: from.col + 1 }
-            );
-            pawnMoves.forEach(pos => {
-                if (isValidPosition(pos)) {
+            ];
+            diagonals.forEach(pos => {
+                if (isValidPosition(pos) && isOccupied(pos.row, pos.col)) {
                     validMoves.push(positionToSquare(pos));
                 }
             });
@@ -139,7 +148,7 @@ export function getValidMoves(piece: PieceType, fromSquare: Square): Square[] {
 }
 
 // Check if a move is valid
-export function isValidMove(piece: PieceType, fromSquare: Square, toSquare: Square): boolean {
-    const validMoves = getValidMoves(piece, fromSquare);
+export function isValidMove(piece: PieceType, fromSquare: Square, toSquare: Square, occupiedSquares: Position[] = []): boolean {
+    const validMoves = getValidMoves(piece, fromSquare, occupiedSquares);
     return validMoves.includes(toSquare);
 }
