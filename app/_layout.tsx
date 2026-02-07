@@ -5,7 +5,6 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
 import { colors } from '../constants/theme';
 import { useAuthStore } from '../stores/authStore';
-import DebugOverlay from '../components/DebugOverlay';
 
 export default function RootLayout() {
     const { initAuthListener } = useAuthStore();
@@ -57,8 +56,6 @@ export default function RootLayout() {
                     animation: 'slide_from_right',
                 }}
             />
-            {/* INJECT DEBUG OVERLAY */}
-            <DebugOverlay />
         </GestureHandlerRootView>
     );
 }

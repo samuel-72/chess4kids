@@ -1,15 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    Pressable,
-    SafeAreaView,
-    Dimensions,
-    Image,
-} from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Platform, Dimensions, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, spacing, fontSize, borderRadius } from '../../constants/theme';
@@ -41,9 +34,19 @@ const SURPRISE_REWARDS = [
     { emoji: '👑', name: 'Golden Crown!' },
 ];
 
+const REAL_PIECES: Record<PieceType, string> = {
+    pawn: '♙',
+    knight: '♘',
+    bishop: '♗',
+    rook: '♖',
+    queen: '♕',
+    king: '♔',
+};
+
 type GameMode = 'practice' | 'fastest_finger';
 
 export default function LessonScreen() {
+    const router = useRouter();
     const { piece: pieceParam } = useLocalSearchParams<{ piece: PieceType }>();
     const piece = pieceParam as PieceType;
     const pieceInfo = PIECE_INFO[piece];
@@ -272,7 +275,7 @@ export default function LessonScreen() {
         }
 
         completeLesson({
-            lessonId: `${piece}-${gameMode}-${Date.now()}`,
+            lessonId: `${piece} -${gameMode} -${Date.now()} `,
             pieceType: piece,
             completedAt: Date.now(),
             score: stars,
@@ -299,7 +302,7 @@ export default function LessonScreen() {
                 }
                 setScenario(newScenario);
 
-                setMessage(`Round ${round + 1}!`);
+                setMessage(`Round ${round + 1} !`);
                 setMessageType('hint');
                 setTimeout(() => setMessage(''), 1500);
             }, 2000);
@@ -351,7 +354,7 @@ export default function LessonScreen() {
                 if (piece === 'king' && Math.abs(piecePosition.col - col) > 1) {
                     setMessage('Castle! 🏰');
                 } else {
-                    setMessage(`+${pointsEarned}${bonusText} ${remaining} left!`);
+                    setMessage(`+ ${pointsEarned}${bonusText} ${remaining} left!`);
                 }
                 setMessageType('success');
             } else {
@@ -370,7 +373,7 @@ export default function LessonScreen() {
             }
 
             SoundEffects.error();
-            setMessage(`Oops! +2s penalty`);
+            setMessage(`Oops! + 2s penalty`);
             setMessageType('error');
             setTimeout(() => setMessage(''), 1500);
         }
@@ -379,7 +382,7 @@ export default function LessonScreen() {
     const formatTime = (ms: number) => {
         const seconds = Math.floor(ms / 1000);
         const tenths = Math.floor((ms % 1000) / 100);
-        return `${seconds}.${tenths}s`;
+        return `${seconds}.${tenths} s`;
     };
 
     const renderSquare = (row: number, col: number, squareSize: number) => {
@@ -399,7 +402,7 @@ export default function LessonScreen() {
 
         return (
             <Pressable
-                key={`${row}-${col}`}
+                key={`${row} -${col} `}
                 style={({ pressed }) => [
                     { width: squareSize, height: squareSize, justifyContent: 'center', alignItems: 'center' },
                     isLight ? styles.lightSquare : styles.darkSquare,
@@ -423,11 +426,16 @@ export default function LessonScreen() {
                 )}
 
                 {isFriendlyHere && friendlyHere && (
-                    <Image
-                        source={PIECE_IMAGES[friendlyHere.type]}
-                        style={{ width: squareSize * 0.8, height: squareSize * 0.8, opacity: 0.9 }}
-                        resizeMode="contain"
-                    />
+                    <Text style={{
+                        fontSize: squareSize * 0.8,
+                        color: 'white',
+                        // Add shadow/outline for visibility on dark/light squares
+                        textShadowColor: 'black',
+                        textShadowOffset: { width: 1, height: 1 },
+                        textShadowRadius: 2
+                    }}>
+                        {REAL_PIECES[friendlyHere.type]}
+                    </Text>
                 )}
 
                 {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
@@ -510,7 +518,7 @@ export default function LessonScreen() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
-                <SafeAreaView style={styles.safeArea}>
+                <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
                     <View style={styles.header}>
                         <Pressable onPress={onBack} style={styles.backButton}>
                             <Text style={styles.backButtonText}>← Back</Text>
@@ -603,7 +611,7 @@ export default function LessonScreen() {
                     </View>
                 </SafeAreaView>
 
-                <CelebrationOverlay visible={showCelebration} message={`${surpriseReward.emoji} ${surpriseReward.name}`} />
+                <CelebrationOverlay visible={showCelebration} message={`${surpriseReward.emoji} ${surpriseReward.name} `} />
             </LinearGradient>
         </GestureHandlerRootView>
     );
@@ -636,10 +644,10 @@ const styles = StyleSheet.create({
     modeButtonTitle: { fontSize: fontSize.xl, fontWeight: 'bold', color: colors.white },
     modeButtonDesc: { fontSize: fontSize.sm, color: 'rgba(255,255,255,0.8)', marginTop: spacing.xs },
 
-    backButtonAbsolute: { position: 'absolute', top: 20, left: 20, padding: spacing.sm },
+    backButtonAbsolute: { position: 'absolute', top: 20, left: 20, padding: spacing.sm, zIndex: 100 },
     backButtonText: { color: colors.white, fontSize: fontSize.md, fontWeight: '600' },
 
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.md, zIndex: 100 },
     backButton: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
     scoreContainer: { alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)', padding: spacing.sm, borderRadius: borderRadius.md },
     scoreLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
