@@ -46,6 +46,11 @@ type ScenarioType = {
     enemyStart?: { x: number; y: number };
     enemyMove?: { dx: number; dy: number }; // For En Passant
     transformTo?: PieceType; // For Promotion
+    secondaryPiece?: {
+        type: PieceType;
+        start: { x: number; y: number };
+        move?: { dx: number; dy: number };
+    };
 };
 
 // PAWN SCENARIOS for Movement Loop (8x8 board, 0-indexed from top)
@@ -209,11 +214,21 @@ const KING_SCENARIOS: ScenarioType[] = [
         title: "Short Castling! 🏰",
         heroStart: { x: 4, y: 7 }, // King on e1
         heroMove: { dx: 2, dy: 0 }, // King moves to g1
+        secondaryPiece: {
+            type: 'rook',
+            start: { x: 7, y: 7 },
+            move: { dx: -2, dy: 0 } // h1 -> f1
+        }
     },
     {
         title: "Long Castling! 🏰",
         heroStart: { x: 4, y: 7 }, // King on e1
         heroMove: { dx: -2, dy: 0 }, // King moves to c1
+        secondaryPiece: {
+            type: 'rook',
+            start: { x: 0, y: 7 },
+            move: { dx: 3, dy: 0 } // a1 -> d1
+        }
     },
 ];
 
@@ -275,6 +290,8 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
     const heroY = useSharedValue(0);
     const enemyX = useSharedValue(0);
     const enemyY = useSharedValue(0);
+    const secondaryX = useSharedValue(0);
+    const secondaryY = useSharedValue(0);
     const scale = useSharedValue(1);
 
     const [transformedPiece, setTransformedPiece] = useState<PieceType | null>(null);
@@ -309,6 +326,8 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
         heroY.value = 0;
         enemyX.value = 0;
         enemyY.value = 0;
+        secondaryX.value = 0;
+        secondaryY.value = 0;
         scale.value = 1;
         setTransformedPiece(null);
 
@@ -335,6 +354,12 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
             }
         }));
 
+        // Secondary Piece Move
+        if (activeScenario.secondaryPiece && activeScenario.secondaryPiece.move) {
+            secondaryX.value = withDelay(MOVE_DELAY, withTiming(activeScenario.secondaryPiece.move.dx * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }));
+            secondaryY.value = withDelay(MOVE_DELAY, withTiming(activeScenario.secondaryPiece.move.dy * CELL_SIZE, { duration: MOVE_DUR, easing: Easing.inOut(Easing.cubic) }));
+        }
+
     }, [activeScenario]);
 
     const animatedHeroStyle = useAnimatedStyle(() => ({
@@ -343,6 +368,10 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
 
     const animatedEnemyStyle = useAnimatedStyle(() => ({
         transform: [{ translateX: enemyX.value }, { translateY: enemyY.value }],
+    }));
+
+    const animatedSecondaryStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: secondaryX.value }, { translateY: secondaryY.value }],
     }));
 
     // Grid Rendering
@@ -400,6 +429,13 @@ export function MoveTutorial({ piece, variant = 'movement', onScenarioChange }: 
                                     {transformedPiece ? WHITE_PIECE_EMOJIS[transformedPiece] : WHITE_PIECE_EMOJIS[piece]}
                                 </Text>
                             </Animated.View>
+
+                            {/* Secondary Piece (White) */}
+                            {activeScenario.secondaryPiece && (
+                                <Animated.View style={[styles.pieceContainer, { left: activeScenario.secondaryPiece.start.x * CELL_SIZE, top: activeScenario.secondaryPiece.start.y * CELL_SIZE }, animatedSecondaryStyle]}>
+                                    <Text style={styles.heroPiece}>{WHITE_PIECE_EMOJIS[activeScenario.secondaryPiece.type]}</Text>
+                                </Animated.View>
+                            )}
                         </View>
                     </View>
 

@@ -23,7 +23,7 @@ const PIECE_INFO: Record<PieceType, { emoji: string; name: string; color: string
     bishop: { emoji: '♝', name: 'Bishop', color: '#9C27B0', hint: 'Bishops zoom diagonally!' },
     rook: { emoji: '♜', name: 'Rook', color: '#2196F3', hint: 'Rooks move straight lines!' },
     queen: { emoji: '♛', name: 'Queen', color: '#E91E63', hint: 'Queen goes anywhere she wants!' },
-    king: { emoji: '♚', name: 'King', color: '#FFD700', hint: 'Kings step 1 square gently.' },
+    king: { emoji: '♚', name: 'King', color: '#FFD700', hint: 'Kings move one step in any direction (except for castling!).' },
 };
 
 const SURPRISE_REWARDS = [
