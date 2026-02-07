@@ -6,6 +6,7 @@ import {
     Pressable,
     SafeAreaView,
     Dimensions,
+    Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,6 +14,7 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { colors, spacing, fontSize, borderRadius } from '../../constants/theme';
 import { getValidMoves, Position, positionToSquare } from '../../utils/chessLogic';
+import { PIECE_IMAGES } from '../../constants/pieces';
 import { PieceType, useProgressStore } from '../../stores/progressStore';
 import CelebrationOverlay from '../../components/CelebrationOverlay';
 import { SoundEffects } from '../../utils/soundEffects';
@@ -264,7 +266,7 @@ export default function LessonScreen() {
     };
 
     const renderSquare = (row: number, col: number, squareSize: number) => {
-        const isLight = (row + col) % 2 === 1;
+        const isLight = (row + col) % 2 === 1; // Corrected lightness check (usually light is even sum? wait, a1 (0,0) is dark. 0+0=0. b1 (0,1) is light. 0+1=1. So odd sum is light.)
         const squareName = positionToSquare({ row, col });
         const isPieceHere = piecePosition.row === row && piecePosition.col === col;
         const isFound = foundMoves.has(squareName);
@@ -282,7 +284,27 @@ export default function LessonScreen() {
                 ]}
                 onPress={() => handleSquareTap(row, col)}
             >
-                {isPieceHere && <Text style={{ fontSize: squareSize * 0.7 }}>{pieceInfo.emoji}</Text>}
+                {/* Board Labels */}
+                {/* File (a-h) on bottom row (row 0) */}
+                {row === 0 && (
+                    <Text style={[styles.coordLabel, styles.fileLabel, { color: isLight ? '#7B8D8E' : '#F7F1E3' }]}>
+                        {String.fromCharCode(97 + col)}
+                    </Text>
+                )}
+                {/* Rank (1-8) on left col (col 0) */}
+                {col === 0 && (
+                    <Text style={[styles.coordLabel, styles.rankLabel, { color: isLight ? '#7B8D8E' : '#F7F1E3' }]}>
+                        {row + 1}
+                    </Text>
+                )}
+
+                {isPieceHere && (
+                    <Image
+                        source={PIECE_IMAGES[piece]}
+                        style={{ width: squareSize * 0.8, height: squareSize * 0.8 }}
+                        resizeMode="contain"
+                    />
+                )}
                 {isFound && !isPieceHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
                 {isWrong && <Text style={[styles.wrongEmoji, { fontSize: squareSize * 0.5 }]}>✗</Text>}
             </Pressable>
@@ -504,4 +526,18 @@ const styles = StyleSheet.create({
     pressedSquare: { opacity: 0.7 },
     checkEmoji: { color: colors.white, fontWeight: 'bold' },
     wrongEmoji: { color: colors.white, fontWeight: 'bold' },
+    coordLabel: {
+        position: 'absolute',
+        fontSize: 10,
+        fontWeight: 'bold',
+        opacity: 0.8,
+    },
+    fileLabel: {
+        bottom: 2,
+        right: 2,
+    },
+    rankLabel: {
+        top: 2,
+        left: 2,
+    },
 });

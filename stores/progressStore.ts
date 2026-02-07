@@ -30,6 +30,7 @@ interface ProgressState extends UserProgress {
     resetPieceProgress: (piece: PieceType) => void; // Reset single piece
     getCompletedLessonsForPiece: (piece: PieceType) => string[];
     getTotalCompletedLessons: () => number;
+    getPieceStats: (piece: PieceType) => { count: number; score: number };
 }
 
 const INITIAL_STATE: UserProgress = {
@@ -133,6 +134,15 @@ export const useProgressStore = create<ProgressState>()(
                     (sum, lessons) => sum + lessons.length,
                     0
                 );
+            },
+            getPieceStats: (piece: PieceType) => {
+                const state = get();
+                const history = state.lessonHistory.filter(l => l.pieceType === piece);
+                const score = history.reduce((acc, l) => acc + l.score, 0);
+                return {
+                    count: state.lessonsCompleted[piece]?.length || 0,
+                    score,
+                };
             },
         }),
         {

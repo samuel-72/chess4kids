@@ -22,18 +22,17 @@ import { useAuthStore } from '../stores/authStore';
 import { useProgressStore, PieceType } from '../stores/progressStore';
 import { getLessonsForPiece } from '../utils/lessonGenerator';
 
-const PIECES: { type: PieceType; label: string; image: any }[] = [
-    { type: 'pawn', label: 'Pawn', image: require('../assets/pieces/pawn.png') },
-    { type: 'knight', label: 'Knight', image: require('../assets/pieces/knight.png') },
-    { type: 'bishop', label: 'Bishop', image: require('../assets/pieces/bishop.png') },
-    { type: 'rook', label: 'Rook', image: require('../assets/pieces/rook.png') },
-    { type: 'queen', label: 'Queen', image: require('../assets/pieces/queen.png') },
-    { type: 'king', label: 'King', image: require('../assets/pieces/king.png') },
-];
+import { PIECE_IMAGES, PIECE_LABELS } from '../constants/pieces';
+
+const PIECES = (Object.keys(PIECE_IMAGES) as PieceType[]).map(type => ({
+    type,
+    label: PIECE_LABELS[type],
+    image: PIECE_IMAGES[type],
+}));
 
 export default function HomeScreen() {
     const { user, logout } = useAuthStore();
-    const { totalXP, level, lessonsCompleted, resetPieceProgress } = useProgressStore();
+    const { totalXP, level, getPieceStats, resetPieceProgress } = useProgressStore();
     const { width, height } = useWindowDimensions();
     const [showSettings, setShowSettings] = useState(false);
 
@@ -111,9 +110,7 @@ export default function HomeScreen() {
                 >
                     <View style={[styles.grid, { gap }]}>
                         {PIECES.map((piece, index) => {
-                            const completed = lessonsCompleted[piece.type]?.length || 0;
-                            const total = getLessonsForPiece(piece.type).length;
-                            const progress = total > 0 ? completed / total : 0;
+                            const stats = getPieceStats(piece.type);
 
                             return (
                                 <Animated.View
@@ -140,12 +137,17 @@ export default function HomeScreen() {
                                             {/* Label */}
                                             <Text style={styles.pieceLabel}>{piece.label}</Text>
 
-                                            {/* Progress */}
-                                            <View style={styles.progressRow}>
-                                                <View style={styles.progressTrack}>
-                                                    <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+                                            {/* Stats Row */}
+                                            <View style={styles.statsRow}>
+                                                <View style={styles.statItem}>
+                                                    <Text style={styles.statLabel}>Tasks</Text>
+                                                    <Text style={styles.statValue}>{stats.count}</Text>
                                                 </View>
-                                                <Text style={styles.progressText}>{completed}/{total}</Text>
+                                                <View style={styles.statDivider} />
+                                                <View style={styles.statItem}>
+                                                    <Text style={styles.statLabel}>Score</Text>
+                                                    <Text style={styles.statValue}>{stats.score} ⭐</Text>
+                                                </View>
                                             </View>
                                         </View>
                                     </Pressable>
@@ -165,7 +167,7 @@ export default function HomeScreen() {
 
                         <ScrollView style={styles.modalScroll}>
                             {PIECES.map((piece) => {
-                                const count = lessonsCompleted[piece.type]?.length || 0;
+                                const stats = getPieceStats(piece.type);
                                 return (
                                     <Pressable
                                         key={piece.type}
@@ -174,7 +176,7 @@ export default function HomeScreen() {
                                     >
                                         <Image source={piece.image} style={styles.resetImage} resizeMode="contain" />
                                         <Text style={styles.resetLabel}>{piece.label}</Text>
-                                        <Text style={styles.resetCount}>{count}</Text>
+                                        <Text style={styles.resetCount}>{stats.count}</Text>
                                         <Text style={styles.resetIcon}>↺</Text>
                                     </Pressable>
                                 );
@@ -295,28 +297,33 @@ const styles = StyleSheet.create({
         textShadowRadius: 3,
         zIndex: 1,
     },
-    progressRow: {
+    statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        zIndex: 1,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        gap: 8,
+        marginTop: 4,
     },
-    progressTrack: {
-        width: 50,
-        height: 5,
-        backgroundColor: 'rgba(255,255,255,0.3)',
-        borderRadius: 3,
-        overflow: 'hidden',
+    statItem: {
+        alignItems: 'center',
     },
-    progressFill: {
-        height: '100%',
-        backgroundColor: '#4ade80',
-        borderRadius: 3,
-    },
-    progressText: {
-        fontSize: 13,
-        color: 'rgba(255,255,255,0.8)',
+    statLabel: {
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.7)',
         fontWeight: '600',
+    },
+    statValue: {
+        fontSize: 14,
+        color: '#fff',
+        fontWeight: 'bold',
+    },
+    statDivider: {
+        width: 1,
+        height: 20,
+        backgroundColor: 'rgba(255,255,255,0.2)',
     },
     // Modal
     modalOverlay: {
