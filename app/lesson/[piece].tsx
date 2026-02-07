@@ -48,7 +48,7 @@ type GameMode = 'practice' | 'fastest_finger';
 export default function LessonScreen() {
     const router = useRouter();
     const { piece: pieceParam } = useLocalSearchParams<{ piece: PieceType }>();
-    const piece = pieceParam as PieceType;
+    const piece = (Array.isArray(pieceParam) ? pieceParam[0] : pieceParam) as PieceType;
     const pieceInfo = PIECE_INFO[piece];
 
     const onBack = () => router.back();
@@ -564,8 +564,8 @@ export default function LessonScreen() {
         return (
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
                 <SafeAreaView style={styles.modeSelectContainer}>
-                    <Pressable onPress={onBack} style={styles.backButtonAbsolute}>
-                        <Text style={styles.backButtonText}>← Back</Text>
+                    <Pressable onPress={onBack} style={styles.backButtonAbsolute} hitSlop={20}>
+                        <Text style={[styles.backButtonText, { fontSize: 24 }]}>←</Text>
                     </Pressable>
 
                     <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name}</Text>
