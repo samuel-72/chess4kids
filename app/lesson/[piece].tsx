@@ -98,8 +98,16 @@ export default function LessonScreen() {
 
         switch (piece) {
             case 'pawn':
-                // ... (Existing Pawn Logic - Kept concise) ...
-                if (currentRound === 3 || currentRound === 4) {
+                if (currentRound === 1) {
+                    piecePos = { row: 3, col: 3 }; // Middle
+                    // Normal move
+                } else if (currentRound === 2) {
+                    // Blocked 2-step!
+                    piecePos = { row: 1, col: 4 }; // Start pos
+                    // Friendly at 2 steps away (row 3)
+                    friendlies.push({ row: 3, col: 4, type: 'rook' });
+                    hint = "Blocked! You can't jump over friends. Move 1 step.";
+                } else if (currentRound === 3 || currentRound === 4) {
                     piecePos = { row: 3, col: 3 + Math.floor(Math.random() * 2) };
                     const side = Math.random() > 0.5 ? 1 : -1;
                     enemies.push({ row: piecePos.row + 1, col: piecePos.col + side });
@@ -127,17 +135,32 @@ export default function LessonScreen() {
                 if (currentRound === 3) {
                     // Practice JUMPING over friendlies (Vertical)
                     friendlies.push({ row: piecePos.row + 1, col: piecePos.col, type: 'pawn' });
-                    // Hint
                     hint = "Knights can jump over friends! 🐎";
                 } else if (currentRound === 4) {
                     // Practice JUMPING over friendlies (Horizontal/Complex)
                     friendlies.push({ row: piecePos.row, col: piecePos.col + 1, type: 'pawn' });
                     friendlies.push({ row: piecePos.row - 1, col: piecePos.col, type: 'pawn' });
                     hint = "Jump over the wall! 🧱";
-                } else if (currentRound >= 5) {
+                } else if (currentRound === 5) {
+                    // Blocked Landing!
+                    // Place friendlies on 2 valid spots
+                    const moves = getValidMoves('knight', positionToSquare(piecePos), [], []);
+                    if (moves.length > 0) {
+                        // Pick 2 random moves to block
+                        // Note: getValidMoves returns Squares (strings). Need positions.
+                        // I'll just hardcode offsets for blocking logic relative to piecePos
+                        const offsets = [{ r: 2, c: 1 }, { r: -2, c: -1 }];
+                        offsets.forEach(off => {
+                            const p = { row: piecePos.row + off.r, col: piecePos.col + off.c };
+                            if (p.row >= 0 && p.row < 8 && p.col >= 0 && p.col < 8) {
+                                friendlies.push({ ...p, type: 'pawn' });
+                            }
+                        });
+                        hint = "Watch out! Don't land on your friends! 🚫";
+                    }
+                } else if (currentRound >= 6) {
                     // Capture
                     hint = "Capture the enemy!";
-                    // Place enemy at valid L-shape
                     const offsets = [{ r: 2, c: 1 }, { r: 2, c: -1 }, { r: -2, c: 1 }];
                     const off = offsets[Math.floor(Math.random() * offsets.length)];
                     const enemyPos = { row: piecePos.row + off.r, col: piecePos.col + off.c };
@@ -148,8 +171,14 @@ export default function LessonScreen() {
                 break;
 
             case 'king':
-                // Castling Scenarios
-                if (currentRound === 3) {
+                if (currentRound === 2) {
+                    // Blocked Scenarios
+                    piecePos = { row: 3, col: 3 };
+                    // Surround partially
+                    friendlies.push({ row: 3, col: 4, type: 'pawn' });
+                    friendlies.push({ row: 4, col: 3, type: 'pawn' });
+                    hint = "Don't step on your friends! 👑";
+                } else if (currentRound === 3) {
                     // Short Castle
                     piecePos = { row: 0, col: 4 }; // e1
                     friendlies.push({ row: 0, col: 7, type: 'rook' }); // h1 Rook
@@ -172,9 +201,17 @@ export default function LessonScreen() {
             case 'rook':
             case 'bishop':
             case 'queen':
-                // Sliding Pieces Capture Practice
                 piecePos = { row: 3, col: 3 };
-                if (currentRound >= 3) {
+
+                if (currentRound === 2) {
+                    // Blocked Path
+                    const dirs = piece === 'bishop' ? [{ r: 1, c: 1 }] : piece === 'rook' ? [{ r: 0, c: 1 }] : [{ r: 1, c: 1 }];
+                    const dir = dirs[0];
+                    // Friendly at 2 steps
+                    friendlies.push({ row: piecePos.row + dir.r * 2, col: piecePos.col + dir.c * 2, type: 'pawn' });
+                    hint = "You can't move through friends! Stop before them. 🛑";
+                } else if (currentRound >= 3) {
+                    // Sliding Pieces Capture Practice
                     const dirs = piece === 'bishop' ? [{ r: 1, c: 1 }] : piece === 'rook' ? [{ r: 1, c: 0 }] : [{ r: 1, c: 1 }];
                     const dir = dirs[0];
                     enemies.push({ row: piecePos.row + dir.r * 2, col: piecePos.col + dir.c * 2 });
