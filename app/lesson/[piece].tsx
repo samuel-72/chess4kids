@@ -518,7 +518,7 @@ export default function LessonScreen() {
                 {isPieceHere && (
                     <Image
                         source={PIECE_IMAGES[piece]}
-                        style={{ width: squareSize * 0.8, height: squareSize * 0.8 }}
+                        style={{ width: squareSize * 0.85, height: squareSize * 0.85 }}
                         resizeMode="contain"
                     />
                 )}
@@ -532,15 +532,15 @@ export default function LessonScreen() {
                     piece === 'king' && friendlyHere.type === 'rook' ? (
                         <Image
                             source={PIECE_IMAGES['rook']}
-                            style={{ width: squareSize * 0.8, height: squareSize * 0.8 }}
+                            style={{ width: squareSize * 0.85, height: squareSize * 0.85 }}
                             resizeMode="contain"
                         />
                     ) : (
                         <Image
                             source={REAL_PIECES[friendlyHere.type]}
                             style={{
-                                width: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
-                                height: squareSize * (friendlyHere.type === 'pawn' ? 0.65 : friendlyHere.type === 'king' || friendlyHere.type === 'queen' ? 0.9 : 0.8),
+                                width: squareSize * 0.85,
+                                height: squareSize * 0.85,
                                 // Shadow for visibility
                                 shadowColor: '#000',
                                 shadowOffset: { width: 0, height: 2 },
