@@ -2,6 +2,14 @@
 
 **Chess Kids** is a fun, interactive mobile application designed to teach children how to play chess! 
 
+## ✨ Features
+
+- **Interactive Lessons**: Learn how each piece moves with guided tutorials.
+- **"Fastest Finger" Game**: Race against the clock to find valid moves!
+- **Guest Mode**: Jump right in with fun, auto-generated usernames.
+- **Progress Tracking**: Earn stars and unlock new lessons.
+- **Mobile Optimized**: Smooth animations and responsive layout for all devices. 
+
 ## 📲 Download & Play
 
 No coding required! You can download the app for your Android or iOS device.
@@ -41,6 +49,22 @@ If you want to contribute or build the app yourself:
     ```bash
     npx expo start
     ```
+
+    This will start the development server. Scan the QR code with the **Expo Go** app on your phone, or press `w` to run in a web browser.
+
+4.  **Testing**:
+    Since there are no automated tests yet, testing involves:
+    -   Running the app locally (`npx expo start`).
+    -   Verifying lessons work as expected.
+    -   Checking move validation logic in `utils/chessLogic.ts`.
+
+### 📂 Project Structure
+
+- **`app/`**: Application screens and navigation (Expo Router).
+- **`components/`**: Reusable UI elements (Board, Pieces, Overlays).
+- **`utils/`**: Core game logic (Move validation, En Passant, Castling).
+- **`stores/`**: State management (Zustand) for User and Progress.
+- **`assets/`**: Images and sounds.
 
 ## 🌐 Web Distribution
 

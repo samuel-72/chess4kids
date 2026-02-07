@@ -13,8 +13,8 @@ import CelebrationOverlay from '../../components/CelebrationOverlay';
 import { SoundEffects } from '../../utils/soundEffects';
 import { MoveTutorial } from '../../components/MoveTutorial';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const DEFAULT_BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, 360);
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const DEFAULT_BOARD_SIZE = Math.min(SCREEN_WIDTH - 40, SCREEN_HEIGHT * 0.55, 360);
 
 // Piece info for display
 const PIECE_INFO: Record<PieceType, { emoji: string; name: string; color: string; hint: string }> = {
@@ -124,12 +124,16 @@ export default function LessonScreen() {
                 // Start center-ish
                 piecePos = { row: 3 + Math.floor(Math.random() * 2), col: 3 + Math.floor(Math.random() * 2) };
 
-                if (currentRound >= 3 && currentRound <= 4) {
-                    // Practice JUMPING over friendlies
-                    // Place a friendly pawn next to playing knight
+                if (currentRound === 3) {
+                    // Practice JUMPING over friendlies (Vertical)
                     friendlies.push({ row: piecePos.row + 1, col: piecePos.col, type: 'pawn' });
-                    friendlies.push({ row: piecePos.row, col: piecePos.col + 1, type: 'pawn' });
+                    // Hint
                     hint = "Knights can jump over friends! 🐎";
+                } else if (currentRound === 4) {
+                    // Practice JUMPING over friendlies (Horizontal/Complex)
+                    friendlies.push({ row: piecePos.row, col: piecePos.col + 1, type: 'pawn' });
+                    friendlies.push({ row: piecePos.row - 1, col: piecePos.col, type: 'pawn' });
+                    hint = "Jump over the wall! 🧱";
                 } else if (currentRound >= 5) {
                     // Capture
                     hint = "Capture the enemy!";
@@ -518,7 +522,7 @@ export default function LessonScreen() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
-                <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+                <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
                     <View style={styles.header}>
                         <Pressable onPress={onBack} style={styles.backButton}>
                             <Text style={styles.backButtonText}>← Back</Text>
