@@ -436,23 +436,24 @@ export default function LessonScreen() {
             if (remaining > 0) {
                 const bonusText = gameMode === 'fastest_finger' && pointsEarned > 10 ? ' ⚡' : '';
                 // Check if Castle
+                // Check if Castle
                 if (piece === 'king' && Math.abs(piecePosition.col - col) > 1) {
                     setMessage('Castle! 🏰');
                     // ANIMATE ROOK: Update scenario to move rook
-                    // Short Castle: King e1->g1 (4->6). Rook h1->f1 (7->5).
-                    // Long Castle: King e1->c1 (4->2). Rook a1->d1 (0->3).
                     const isShort = col > piecePosition.col;
                     const rookSrcCol = isShort ? 7 : 0;
                     const rookDstCol = isShort ? 5 : 3;
-                    const row = piecePosition.row; // 0
+                    const kingRow = piecePosition.row; // Rename to avoid shadowing
 
                     setScenario(prev => ({
                         ...prev,
                         friendlies: prev.friendlies.map(p =>
-                            (p.row === row && p.col === rookSrcCol && p.type === 'rook')
+                            (p.row === kingRow && p.col === rookSrcCol && p.type === 'rook')
                                 ? { ...p, col: rookDstCol }
-                                : p),
-                        piecePos: { row: piecePosition.row, col: col }
+                                : p
+                        ),
+                        // Explicitly update King Position
+                        piecePos: { row: kingRow, col: col }
                     }));
                 } else {
                     setMessage(`+ ${pointsEarned}${bonusText} ${remaining} left!`);
@@ -527,17 +528,13 @@ export default function LessonScreen() {
                 )}
 
                 {isFriendlyHere && friendlyHere && (
-                    // Special case: Castling Rook should be Emoji (like landing page)
+                    // Special case: Castling Rook should be Cartoon Rook (like landing page / hero)
                     piece === 'king' && friendlyHere.type === 'rook' ? (
-                        <Text style={{
-                            fontSize: squareSize * 0.8,
-                            color: 'white',
-                            textShadowColor: 'black',
-                            textShadowOffset: { width: 1, height: 1 },
-                            textShadowRadius: 2
-                        }}>
-                            ♖
-                        </Text>
+                        <Image
+                            source={PIECE_IMAGES['rook']}
+                            style={{ width: squareSize * 0.8, height: squareSize * 0.8 }}
+                            resizeMode="contain"
+                        />
                     ) : (
                         <Image
                             source={REAL_PIECES[friendlyHere.type]}
@@ -637,7 +634,7 @@ export default function LessonScreen() {
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
                 <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
                     <View style={styles.header}>
-                        <Pressable onPress={onBack} style={styles.backButton}>
+                        <Pressable onPress={onBack} style={styles.backButton} hitSlop={20}>
                             <Text style={styles.backButtonText}>← Back</Text>
                         </Pressable>
                         <View style={styles.scoreContainer}>
