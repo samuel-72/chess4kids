@@ -42,6 +42,7 @@ export default function HomeScreen() {
 
     const handleLogout = async () => {
         await logout();
+        useProgressStore.getState().resetProgress();
         router.replace('/login');
     };
 

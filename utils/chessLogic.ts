@@ -22,8 +22,13 @@ export function isValidPosition(pos: Position): boolean {
     return pos.row >= 0 && pos.row < 8 && pos.col >= 0 && pos.col < 8;
 }
 
-// Get valid moves for a piece from a given position, considering occupied squares (enemies)
-export function getValidMoves(piece: PieceType, fromSquare: Square, occupiedSquares: Position[] = []): Square[] {
+// Get valid moves for a piece from a given position, considering occupied squares (enemies) and en passant target
+export function getValidMoves(
+    piece: PieceType,
+    fromSquare: Square,
+    occupiedSquares: Position[] = [],
+    enPassantTarget?: Square
+): Square[] {
     const from = squareToPosition(fromSquare);
     const validMoves: Square[] = [];
 
@@ -46,17 +51,22 @@ export function getValidMoves(piece: PieceType, fromSquare: Square, occupiedSqua
                 }
             }
 
-            // Diagonal captures (Valid ONLY if occupied by enemy)
+            // Diagonal captures (Valid ONLY if occupied by enemy OR is en passant target)
             const diagonals = [
                 { row: from.row + 1, col: from.col - 1 },
                 { row: from.row + 1, col: from.col + 1 }
             ];
             diagonals.forEach(pos => {
-                if (isValidPosition(pos) && isOccupied(pos.row, pos.col)) {
-                    validMoves.push(positionToSquare(pos));
+                if (isValidPosition(pos)) {
+                    const sq = positionToSquare(pos);
+                    // Standard capture or En Passant
+                    if (isOccupied(pos.row, pos.col) || sq === enPassantTarget) {
+                        validMoves.push(sq);
+                    }
                 }
             });
             break;
+        // ... (rest of the switch)
 
         case 'knight':
             // L-shape moves: 2 squares in one direction, 1 square perpendicular
@@ -148,7 +158,13 @@ export function getValidMoves(piece: PieceType, fromSquare: Square, occupiedSqua
 }
 
 // Check if a move is valid
-export function isValidMove(piece: PieceType, fromSquare: Square, toSquare: Square, occupiedSquares: Position[] = []): boolean {
-    const validMoves = getValidMoves(piece, fromSquare, occupiedSquares);
+export function isValidMove(
+    piece: PieceType,
+    fromSquare: Square,
+    toSquare: Square,
+    occupiedSquares: Position[] = [],
+    enPassantTarget?: Square
+): boolean {
+    const validMoves = getValidMoves(piece, fromSquare, occupiedSquares, enPassantTarget);
     return validMoves.includes(toSquare);
 }

@@ -49,17 +49,26 @@ export const useAuthStore = create<AuthState>()(
                 isLoading: false
             }),
 
-            loginAsGuest: () => set({
-                user: {
-                    id: `guest_${Date.now()}`,
-                    name: 'Little Champion',
-                    email: '',
-                    provider: 'guest',
-                    createdAt: Date.now(),
-                },
-                isAuthenticated: true,
-                isLoading: false,
-            }),
+            loginAsGuest: () => {
+                const funnyNames = [
+                    'Grandmaster Giggles', 'Sir Checkmate', 'Pawn Star', 'Rook n Roll',
+                    'Bishop Boogie', 'Knight Rider', 'Queen Bee', 'King Kong',
+                    'Chess Munchkin', 'Tactical Toddler', 'Checkmate Charlie', 'Gambit Gus'
+                ];
+                const randomName = funnyNames[Math.floor(Math.random() * funnyNames.length)];
+
+                set({
+                    user: {
+                        id: `guest_${Date.now()}`,
+                        name: randomName,
+                        email: '',
+                        provider: 'guest',
+                        createdAt: Date.now(),
+                    },
+                    isAuthenticated: true,
+                    isLoading: false,
+                });
+            },
 
             loginWithGoogle: async () => {
                 set({ isLoading: true });

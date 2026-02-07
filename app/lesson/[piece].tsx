@@ -78,25 +78,45 @@ export default function LessonScreen() {
     }));
 
     // Generate a scenario (piece position + enemies)
-    const generateScenario = useCallback((): { piecePos: Position; enemies: Position[] } => {
+    const generateScenario = useCallback((currentRound: number = 1): { piecePos: Position; enemies: Position[]; enPassantTarget?: string; hint?: string } => {
         let piecePos: Position;
         const enemies: Position[] = [];
+        let enPassantTarget: string | undefined;
+        let hint: string | undefined;
 
         switch (piece) {
             case 'pawn':
-                // Row 1-5 (Rank 2-6) to allow movement
-                piecePos = {
-                    row: 1 + Math.floor(Math.random() * 5),
-                    col: Math.floor(Math.random() * 8)
-                };
-
-                // 50% chance to add an enemy for capture potential
-                if (Math.random() > 0.5) {
+                // Deterministic Lesson Plan for Pawns
+                if (currentRound === 3 || currentRound === 4) {
+                    // FORCE CAPTURE
+                    piecePos = { row: 3, col: 3 + Math.floor(Math.random() * 2) }; // Rank 4
                     const side = Math.random() > 0.5 ? 1 : -1;
                     const enemyPos = { row: piecePos.row + 1, col: piecePos.col + side };
-                    // Ensure enemy is on board
-                    if (enemyPos.col >= 0 && enemyPos.col < 8 && enemyPos.row < 8) {
-                        enemies.push(enemyPos);
+                    enemies.push(enemyPos);
+                    hint = "Capturing is fun! ⚔️";
+                }
+                else if (currentRound === 5) {
+                    // FORCE EN PASSANT
+                    piecePos = { row: 4, col: 3 };
+                    const side = 1;
+                    const enemyPos = { row: 4, col: piecePos.col + side };
+                    enemies.push(enemyPos);
+                    const targetPos = { row: 5, col: enemyPos.col };
+                    enPassantTarget = positionToSquare(targetPos);
+                    hint = "En Passant! The enemy pawn just jumped 2 steps! 👻";
+                }
+                else {
+                    // RANDOM
+                    piecePos = {
+                        row: 1 + Math.floor(Math.random() * 5),
+                        col: Math.floor(Math.random() * 8)
+                    };
+                    if (currentRound > 1 && Math.random() > 0.6) {
+                        const side = Math.random() > 0.5 ? 1 : -1;
+                        const enemyPos = { row: piecePos.row + 1, col: piecePos.col + side };
+                        if (enemyPos.col >= 0 && enemyPos.col < 8 && enemyPos.row < 8) {
+                            enemies.push(enemyPos);
+                        }
                     }
                 }
                 break;
@@ -104,12 +124,12 @@ export default function LessonScreen() {
                 piecePos = { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
                 break;
         }
-        return { piecePos, enemies };
+        return { piecePos, enemies, enPassantTarget, hint };
     }, [piece]);
 
     // Initialize state
-    const [scenario, setScenario] = useState(generateScenario);
-    const { piecePos: piecePosition, enemies } = scenario; // Derived for easier usage
+    const [scenario, setScenario] = useState(() => generateScenario(1));
+    const { piecePos: piecePosition, enemies, enPassantTarget, hint } = scenario;
     const [validMoves, setValidMoves] = useState<string[]>([]);
     const [targetMoves, setTargetMoves] = useState<string[]>([]);
     const [foundMoves, setFoundMoves] = useState<Set<string>>(new Set());
@@ -131,6 +151,15 @@ export default function LessonScreen() {
     const startTime = useRef(Date.now());
     const moveStartTime = useRef(Date.now());
 
+    // Show initial hint if present
+    useEffect(() => {
+        if (hint) {
+            setMessage(hint);
+            setMessageType('hint');
+            setTimeout(() => setMessage(''), 3000);
+        }
+    }, [hint]);
+
     const completeLesson = useProgressStore(state => state.completeLesson);
 
     useEffect(() => {
@@ -148,7 +177,7 @@ export default function LessonScreen() {
     useEffect(() => {
         if (gameMode) {
             const square = positionToSquare(piecePosition);
-            const moves = getValidMoves(piece, square, enemies);
+            const moves = getValidMoves(piece, square, enemies, enPassantTarget);
             setValidMoves(moves);
 
             // FIX: Removed the cap of 6. Now the user must find ALL valid moves.
@@ -162,7 +191,7 @@ export default function LessonScreen() {
                 setIsTimerRunning(true);
             }
         }
-    }, [piecePosition, enemies, piece, gameMode]);
+    }, [piecePosition, enemies, enPassantTarget, piece, gameMode]);
 
     useEffect(() => {
         const goal = targetMoves.length; // Full goal
@@ -198,7 +227,7 @@ export default function LessonScreen() {
             timeSpent,
         });
 
-        if (round >= 3) {
+        if (round >= 6) {
             setIsTimerRunning(false);
 
             setTimeout(() => {
@@ -211,10 +240,10 @@ export default function LessonScreen() {
                 setRound(prev => prev + 1);
 
                 // Generate NEW scenario
-                let newScenario = generateScenario();
-                // Simple retry once if position matches (to improve perceived randomness)
-                if (newScenario.piecePos.row === piecePosition.row && newScenario.piecePos.col === piecePosition.col) {
-                    newScenario = generateScenario();
+                let newScenario = generateScenario(round + 1);
+                // Simple retry once if position matches
+                if (round + 1 > 5 && newScenario.piecePos.row === piecePosition.row && newScenario.piecePos.col === piecePosition.col) {
+                    newScenario = generateScenario(round + 1);
                 }
                 setScenario(newScenario);
 
@@ -302,6 +331,7 @@ export default function LessonScreen() {
         const isPieceHere = piecePosition.row === row && piecePosition.col === col;
         // Check for enemies
         const isEnemyHere = enemies.some(e => e.row === row && e.col === col);
+        const isEPTarget = squareName === enPassantTarget;
 
         const isFound = foundMoves.has(squareName);
         const isWrong = wrongGuesses.has(squareName);
@@ -332,7 +362,7 @@ export default function LessonScreen() {
                 )}
 
                 {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
-                {isFound && isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5, color: '#FFF', position: 'absolute', zIndex: 2 }]}>⚔️</Text>}
+                {isFound && (isEnemyHere || isEPTarget) && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5, color: '#FFF', position: 'absolute', zIndex: 2 }]}>⚔️</Text>}
 
                 {isWrong && <Text style={[styles.wrongEmoji, { fontSize: squareSize * 0.5 }]}>✗</Text>}
             </Pressable>
