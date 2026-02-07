@@ -156,31 +156,32 @@ export default function LessonScreen() {
         const reward = SURPRISE_REWARDS[Math.floor(Math.random() * SURPRISE_REWARDS.length)];
         setSurpriseReward(reward);
 
+        // SAVE PROGRESS IMMEDIATELY (Per Task)
+        const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
+        const stars = wrongGuesses.size === 0 ? 3 : wrongGuesses.size < 3 ? 2 : 1;
+
+        // Save best time for fastest finger
+        if (gameMode === 'fastest_finger') {
+            const currentTime = timer;
+            if (!bestTime || currentTime < bestTime) {
+                setBestTime(currentTime);
+            }
+        }
+
+        completeLesson({
+            lessonId: `${piece}-${gameMode}-${Date.now()}`,
+            pieceType: piece,
+            completedAt: Date.now(),
+            score: stars,
+            timeSpent,
+        });
+
         if (round >= 3) {
             setIsTimerRunning(false);
 
             setTimeout(() => {
                 setShowCelebration(false);
                 setLessonComplete(true);
-
-                const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
-                const stars = wrongGuesses.size === 0 ? 3 : wrongGuesses.size < 3 ? 2 : 1;
-
-                // Save best time for fastest finger
-                if (gameMode === 'fastest_finger') {
-                    const currentTime = timer;
-                    if (!bestTime || currentTime < bestTime) {
-                        setBestTime(currentTime);
-                    }
-                }
-
-                completeLesson({
-                    lessonId: `${piece}-${gameMode}-${Date.now()}`,
-                    pieceType: piece,
-                    completedAt: Date.now(),
-                    score: stars,
-                    timeSpent,
-                });
             }, 2000);
         } else {
             setTimeout(() => {
@@ -284,19 +285,6 @@ export default function LessonScreen() {
                 ]}
                 onPress={() => handleSquareTap(row, col)}
             >
-                {/* Board Labels */}
-                {/* File (a-h) on bottom row (row 0) */}
-                {row === 0 && (
-                    <Text style={[styles.coordLabel, styles.fileLabel, { color: isLight ? '#7B8D8E' : '#F7F1E3' }]}>
-                        {String.fromCharCode(97 + col)}
-                    </Text>
-                )}
-                {/* Rank (1-8) on left col (col 0) */}
-                {col === 0 && (
-                    <Text style={[styles.coordLabel, styles.rankLabel, { color: isLight ? '#7B8D8E' : '#F7F1E3' }]}>
-                        {row + 1}
-                    </Text>
-                )}
 
                 {isPieceHere && (
                     <Image
@@ -405,15 +393,43 @@ export default function LessonScreen() {
                         {/* Draggable Board Container */}
                         <GestureDetector gesture={panGesture}>
                             <Animated.View style={[styles.boardWrapper, animatedBoardStyle]}>
-                                <View style={[styles.board, { width: boardSize, height: boardSize }]}>
-                                    {[...Array(8)].map((_, rowFromTop) => {
-                                        const row = 7 - rowFromTop;
-                                        return (
-                                            <View key={row} style={styles.boardRow}>
-                                                {[...Array(8)].map((_, col) => renderSquare(row, col, squareSize))}
-                                            </View>
-                                        );
-                                    })}
+                                {/* Outer Board Container with Labels */}
+                                <View style={styles.boardContainerExternal}>
+                                    {/* Top File Labels */}
+                                    <View style={[styles.fileRow, { width: boardSize }]}>
+                                        {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((file, i) => (
+                                            <Text key={file} style={styles.coordLabelExternal}>{file}</Text>
+                                        ))}
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row' }}>
+                                        {/* Left Rank Labels */}
+                                        <View style={[styles.rankColumn, { height: boardSize }]}>
+                                            {[8, 7, 6, 5, 4, 3, 2, 1].map((rank) => (
+                                                <Text key={rank} style={styles.coordLabelExternal}>{rank}</Text>
+                                            ))}
+                                        </View>
+
+                                        {/* The Board */}
+                                        <View style={[styles.board, { width: boardSize, height: boardSize }]}>
+                                            {[...Array(8)].map((_, rowFromTop) => {
+                                                const row = 7 - rowFromTop;
+                                                return (
+                                                    <View key={row} style={styles.boardRow}>
+                                                        {[...Array(8)].map((_, col) => renderSquare(row, col, squareSize))}
+                                                    </View>
+                                                );
+                                            })}
+                                        </View>
+
+                                        {/* Right Rank Labels (Optional balance) */}
+                                        <View style={[styles.rankColumn, { height: boardSize }]}>
+                                            {/* Empty for symmetry or repeat labels */}
+                                        </View>
+                                    </View>
+
+                                    {/* Bottom File Labels */}
+                                    {/* <View style={[styles.fileRow, { width: boardSize, paddingLeft: 20 }]}><Text>...</Text></View> */}
                                 </View>
 
                                 {message ? (
@@ -526,18 +542,26 @@ const styles = StyleSheet.create({
     pressedSquare: { opacity: 0.7 },
     checkEmoji: { color: colors.white, fontWeight: 'bold' },
     wrongEmoji: { color: colors.white, fontWeight: 'bold' },
-    coordLabel: {
-        position: 'absolute',
-        fontSize: 10,
+    coordLabelExternal: {
+        fontSize: 12,
         fontWeight: 'bold',
-        opacity: 0.8,
+        color: 'rgba(255,255,255,0.7)',
+        flex: 1,
+        textAlign: 'center',
+        textAlignVertical: 'center',
     },
-    fileLabel: {
-        bottom: 2,
-        right: 2,
+    boardContainerExternal: {
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    rankLabel: {
-        top: 2,
-        left: 2,
+    fileRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        height: 20,
+    },
+    rankColumn: {
+        width: 20,
+        justifyContent: 'space-around',
+        alignItems: 'center',
     },
 });
