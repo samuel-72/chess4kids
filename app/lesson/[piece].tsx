@@ -77,59 +77,110 @@ export default function LessonScreen() {
         ]
     }));
 
-    // Generate a scenario (piece position + enemies)
-    const generateScenario = useCallback((currentRound: number = 1): { piecePos: Position; enemies: Position[]; enPassantTarget?: string; hint?: string } => {
-        let piecePos: Position;
+    // Generate a scenario (piece position + enemies + friendlies)
+    const generateScenario = useCallback((currentRound: number = 1): {
+        piecePos: Position;
+        enemies: Position[];
+        friendlies: { row: number; col: number; type: PieceType }[];
+        enPassantTarget?: string;
+        hint?: string
+    } => {
+        let piecePos: Position = { row: 0, col: 0 };
         const enemies: Position[] = [];
+        const friendlies: { row: number; col: number; type: PieceType }[] = [];
         let enPassantTarget: string | undefined;
         let hint: string | undefined;
 
+        const randomPos = () => ({ row: Math.floor(Math.random() * 8), col: Math.floor(Math.random() * 8) });
+
         switch (piece) {
             case 'pawn':
-                // Deterministic Lesson Plan for Pawns
+                // ... (Existing Pawn Logic - Kept concise) ...
                 if (currentRound === 3 || currentRound === 4) {
-                    // FORCE CAPTURE
-                    piecePos = { row: 3, col: 3 + Math.floor(Math.random() * 2) }; // Rank 4
+                    piecePos = { row: 3, col: 3 + Math.floor(Math.random() * 2) };
                     const side = Math.random() > 0.5 ? 1 : -1;
-                    const enemyPos = { row: piecePos.row + 1, col: piecePos.col + side };
-                    enemies.push(enemyPos);
+                    enemies.push({ row: piecePos.row + 1, col: piecePos.col + side });
                     hint = "Capturing is fun! ⚔️";
-                }
-                else if (currentRound === 5) {
-                    // FORCE EN PASSANT
+                } else if (currentRound === 5) {
                     piecePos = { row: 4, col: 3 };
-                    const side = 1;
-                    const enemyPos = { row: 4, col: piecePos.col + side };
-                    enemies.push(enemyPos);
-                    const targetPos = { row: 5, col: enemyPos.col };
+                    enemies.push({ row: 4, col: 4 });
+                    const targetPos = { row: 5, col: 4 };
                     enPassantTarget = positionToSquare(targetPos);
                     hint = "En Passant! The enemy pawn just jumped 2 steps! 👻";
-                }
-                else {
-                    // RANDOM
-                    piecePos = {
-                        row: 1 + Math.floor(Math.random() * 5),
-                        col: Math.floor(Math.random() * 8)
-                    };
+                } else {
+                    piecePos = { row: 1 + Math.floor(Math.random() * 5), col: Math.floor(Math.random() * 8) };
                     if (currentRound > 1 && Math.random() > 0.6) {
                         const side = Math.random() > 0.5 ? 1 : -1;
                         const enemyPos = { row: piecePos.row + 1, col: piecePos.col + side };
-                        if (enemyPos.col >= 0 && enemyPos.col < 8 && enemyPos.row < 8) {
-                            enemies.push(enemyPos);
-                        }
+                        if (enemyPos.col >= 0 && enemyPos.col < 8 && enemyPos.row < 8) enemies.push(enemyPos);
                     }
                 }
                 break;
-            default:
-                piecePos = { row: 2 + Math.floor(Math.random() * 4), col: 2 + Math.floor(Math.random() * 4) };
+
+            case 'knight':
+                // Start center-ish
+                piecePos = { row: 3 + Math.floor(Math.random() * 2), col: 3 + Math.floor(Math.random() * 2) };
+
+                if (currentRound >= 3 && currentRound <= 4) {
+                    // Practice JUMPING over friendlies
+                    // Place a friendly pawn next to playing knight
+                    friendlies.push({ row: piecePos.row + 1, col: piecePos.col, type: 'pawn' });
+                    friendlies.push({ row: piecePos.row, col: piecePos.col + 1, type: 'pawn' });
+                    hint = "Knights can jump over friends! 🐎";
+                } else if (currentRound >= 5) {
+                    // Capture
+                    hint = "Capture the enemy!";
+                    // Place enemy at valid L-shape
+                    const offsets = [{ r: 2, c: 1 }, { r: 2, c: -1 }, { r: -2, c: 1 }];
+                    const off = offsets[Math.floor(Math.random() * offsets.length)];
+                    const enemyPos = { row: piecePos.row + off.r, col: piecePos.col + off.c };
+                    if (enemyPos.row >= 0 && enemyPos.row < 8 && enemyPos.col >= 0 && enemyPos.col < 8) {
+                        enemies.push(enemyPos);
+                    }
+                }
+                break;
+
+            case 'king':
+                // Castling Scenarios
+                if (currentRound === 3) {
+                    // Short Castle
+                    piecePos = { row: 0, col: 4 }; // e1
+                    friendlies.push({ row: 0, col: 7, type: 'rook' }); // h1 Rook
+                    hint = "Short Castle! Move King 2 steps right. 🏰";
+                } else if (currentRound === 4) {
+                    // Long Castle
+                    piecePos = { row: 0, col: 4 }; // e1
+                    friendlies.push({ row: 0, col: 0, type: 'rook' }); // a1 Rook
+                    hint = "Long Castle! Move King 2 steps left. 🏰";
+                } else if (currentRound >= 5) {
+                    // Capture
+                    piecePos = { row: 3, col: 3 };
+                    enemies.push({ row: 4, col: 4 });
+                    hint = "Kings can capture too! 👑";
+                } else {
+                    piecePos = { row: 3, col: 3 };
+                }
+                break;
+
+            case 'rook':
+            case 'bishop':
+            case 'queen':
+                // Sliding Pieces Capture Practice
+                piecePos = { row: 3, col: 3 };
+                if (currentRound >= 3) {
+                    const dirs = piece === 'bishop' ? [{ r: 1, c: 1 }] : piece === 'rook' ? [{ r: 1, c: 0 }] : [{ r: 1, c: 1 }];
+                    const dir = dirs[0];
+                    enemies.push({ row: piecePos.row + dir.r * 2, col: piecePos.col + dir.c * 2 });
+                    hint = "Slide and Capture! 🚀";
+                }
                 break;
         }
-        return { piecePos, enemies, enPassantTarget, hint };
+        return { piecePos, enemies, friendlies, enPassantTarget, hint };
     }, [piece]);
 
     // Initialize state
     const [scenario, setScenario] = useState(() => generateScenario(1));
-    const { piecePos: piecePosition, enemies, enPassantTarget, hint } = scenario;
+    const { piecePos: piecePosition, enemies, friendlies, enPassantTarget, hint } = scenario;
     const [validMoves, setValidMoves] = useState<string[]>([]);
     const [targetMoves, setTargetMoves] = useState<string[]>([]);
     const [foundMoves, setFoundMoves] = useState<Set<string>>(new Set());
@@ -177,7 +228,8 @@ export default function LessonScreen() {
     useEffect(() => {
         if (gameMode) {
             const square = positionToSquare(piecePosition);
-            const moves = getValidMoves(piece, square, enemies, enPassantTarget);
+            // Valid moves consider friendlies as obstacles
+            const moves = getValidMoves(piece, square, enemies, friendlies, enPassantTarget);
             setValidMoves(moves);
 
             // FIX: Removed the cap of 6. Now the user must find ALL valid moves.
@@ -191,7 +243,7 @@ export default function LessonScreen() {
                 setIsTimerRunning(true);
             }
         }
-    }, [piecePosition, enemies, enPassantTarget, piece, gameMode]);
+    }, [piecePosition, enemies, friendlies, enPassantTarget, piece, gameMode]);
 
     useEffect(() => {
         const goal = targetMoves.length; // Full goal
@@ -295,7 +347,12 @@ export default function LessonScreen() {
 
             if (remaining > 0) {
                 const bonusText = gameMode === 'fastest_finger' && pointsEarned > 10 ? ' ⚡' : '';
-                setMessage(`+${pointsEarned}${bonusText} ${remaining} left!`);
+                // Check if Castle
+                if (piece === 'king' && Math.abs(piecePosition.col - col) > 1) {
+                    setMessage('Castle! 🏰');
+                } else {
+                    setMessage(`+${pointsEarned}${bonusText} ${remaining} left!`);
+                }
                 setMessageType('success');
             } else {
                 setMessage('🎉');
@@ -331,6 +388,10 @@ export default function LessonScreen() {
         const isPieceHere = piecePosition.row === row && piecePosition.col === col;
         // Check for enemies
         const isEnemyHere = enemies.some(e => e.row === row && e.col === col);
+        // Check for friendlies
+        const friendlyHere = friendlies.find(f => f.row === row && f.col === col);
+        const isFriendlyHere = !!friendlyHere;
+
         const isEPTarget = squareName === enPassantTarget;
 
         const isFound = foundMoves.has(squareName);
@@ -359,6 +420,14 @@ export default function LessonScreen() {
 
                 {isEnemyHere && (
                     <Text style={{ fontSize: squareSize * 0.7, color: 'black' }}>♟</Text>
+                )}
+
+                {isFriendlyHere && friendlyHere && (
+                    <Image
+                        source={PIECE_IMAGES[friendlyHere.type]}
+                        style={{ width: squareSize * 0.8, height: squareSize * 0.8, opacity: 0.9 }}
+                        resizeMode="contain"
+                    />
                 )}
 
                 {isFound && !isPieceHere && !isEnemyHere && <Text style={[styles.checkEmoji, { fontSize: squareSize * 0.5 }]}>✓</Text>}
