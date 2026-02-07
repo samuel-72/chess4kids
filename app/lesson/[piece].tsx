@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, Platform, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, Platform, Dimensions, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -56,6 +56,19 @@ export default function LessonScreen() {
     // Game mode selection
     const [gameMode, setGameMode] = useState<GameMode | null>(null);
     const [boardSize, setBoardSize] = useState(DEFAULT_BOARD_SIZE);
+
+    // Visual Scaling Helper
+    const getPieceScale = (type: PieceType) => {
+        switch (type) {
+            case 'pawn': return 0.7;
+            case 'knight':
+            case 'bishop':
+            case 'rook': return 0.8;
+            case 'queen':
+            case 'king': return 0.85;
+            default: return 0.8;
+        }
+    };
 
     // Pan Gesture State
     const boardOffsetX = useSharedValue(0);
@@ -518,7 +531,7 @@ export default function LessonScreen() {
                 {isPieceHere && (
                     <Image
                         source={PIECE_IMAGES[piece]}
-                        style={{ width: squareSize * 0.85, height: squareSize * 0.85 }}
+                        style={{ width: squareSize * getPieceScale(piece), height: squareSize * getPieceScale(piece) }}
                         resizeMode="contain"
                     />
                 )}
@@ -532,15 +545,15 @@ export default function LessonScreen() {
                     piece === 'king' && friendlyHere.type === 'rook' ? (
                         <Image
                             source={PIECE_IMAGES['rook']}
-                            style={{ width: squareSize * 0.85, height: squareSize * 0.85 }}
+                            style={{ width: squareSize * getPieceScale('rook'), height: squareSize * getPieceScale('rook') }}
                             resizeMode="contain"
                         />
                     ) : (
                         <Image
                             source={REAL_PIECES[friendlyHere.type]}
                             style={{
-                                width: squareSize * 0.85,
-                                height: squareSize * 0.85,
+                                width: squareSize * getPieceScale(friendlyHere.type),
+                                height: squareSize * getPieceScale(friendlyHere.type),
                                 // Shadow for visibility
                                 shadowColor: '#000',
                                 shadowOffset: { width: 0, height: 2 },
@@ -563,48 +576,48 @@ export default function LessonScreen() {
     if (gameMode === null) {
         return (
             <LinearGradient colors={[pieceInfo.color, colors.primaryDark]} style={styles.container}>
-                <SafeAreaView style={styles.modeSelectContainer}>
+                <SafeAreaView style={{ flex: 1 }}>
                     <Pressable onPress={onBack} style={styles.backButtonAbsolute} hitSlop={20}>
                         <Text style={[styles.backButtonText, { fontSize: 24 }]}>←</Text>
                     </Pressable>
+                    <ScrollView contentContainerStyle={styles.modeSelectContainer} showsVerticalScrollIndicator={false}>
+                        <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name}</Text>
 
-                    <Text style={styles.modeTitle}>{pieceInfo.emoji} {pieceInfo.name}</Text>
+                        {/* Animated Tutorial */}
+                        <View style={styles.tutorialContainer}>
+                            {piece === 'pawn' ? (
+                                <View style={styles.pawnTutorials}>
+                                    <MoveTutorial
+                                        piece={piece}
+                                        variant="movement"
+                                    />
+                                    <MoveTutorial
+                                        piece={piece}
+                                        variant="promotion"
+                                    />
+                                </View>
+                            ) : (
+                                <MoveTutorial piece={piece} />
+                            )}
+                            <Text style={styles.tutorialText}>
+                                {pieceInfo.hint}
+                            </Text>
+                        </View>
 
+                        <View style={styles.modeButtonsContainer}>
+                            <Pressable style={styles.modeButton} onPress={() => setGameMode('practice')}>
+                                <Text style={styles.modeButtonEmoji}>📚</Text>
+                                <Text style={styles.modeButtonTitle}>Learn Mode</Text>
+                                <Text style={styles.modeButtonDesc}>Take your time</Text>
+                            </Pressable>
 
-                    {/* Animated Tutorial */}
-                    <View style={styles.tutorialContainer}>
-                        {piece === 'pawn' ? (
-                            <View style={styles.pawnTutorials}>
-                                <MoveTutorial
-                                    piece={piece}
-                                    variant="movement"
-                                />
-                                <MoveTutorial
-                                    piece={piece}
-                                    variant="promotion"
-                                />
-                            </View>
-                        ) : (
-                            <MoveTutorial piece={piece} />
-                        )}
-                        <Text style={styles.tutorialText}>
-                            {pieceInfo.hint}
-                        </Text>
-                    </View>
-
-                    <View style={styles.modeButtonsContainer}>
-                        <Pressable style={styles.modeButton} onPress={() => setGameMode('practice')}>
-                            <Text style={styles.modeButtonEmoji}>📚</Text>
-                            <Text style={styles.modeButtonTitle}>Learn Mode</Text>
-                            <Text style={styles.modeButtonDesc}>Take your time</Text>
-                        </Pressable>
-
-                        <Pressable style={[styles.modeButton, styles.fastestFingerButton]} onPress={() => setGameMode('fastest_finger')}>
-                            <Text style={styles.modeButtonEmoji}>⚡</Text>
-                            <Text style={styles.modeButtonTitle}>Fastest Finger</Text>
-                            <Text style={styles.modeButtonDesc}>Speed Challenge!</Text>
-                        </Pressable>
-                    </View>
+                            <Pressable style={[styles.modeButton, styles.fastestFingerButton]} onPress={() => setGameMode('fastest_finger')}>
+                                <Text style={styles.modeButtonEmoji}>⚡</Text>
+                                <Text style={styles.modeButtonTitle}>Fastest Finger</Text>
+                                <Text style={styles.modeButtonDesc}>Speed Challenge!</Text>
+                            </Pressable>
+                        </View>
+                    </ScrollView>
                 </SafeAreaView>
             </LinearGradient>
         );
@@ -734,8 +747,8 @@ export default function LessonScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     safeArea: { flex: 1 },
-    modeSelectContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
-    modeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white, marginBottom: spacing.sm },
+    modeSelectContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl, paddingBottom: 50 },
+    modeTitle: { fontSize: fontSize.giant, fontWeight: 'bold', color: colors.white, marginBottom: spacing.sm, marginTop: 40 },
 
     tutorialContainer: { alignItems: 'center', marginVertical: spacing.xl },
     pawnTutorials: {
