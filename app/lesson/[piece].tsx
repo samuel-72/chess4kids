@@ -438,6 +438,22 @@ export default function LessonScreen() {
                 // Check if Castle
                 if (piece === 'king' && Math.abs(piecePosition.col - col) > 1) {
                     setMessage('Castle! 🏰');
+                    // ANIMATE ROOK: Update scenario to move rook
+                    // Short Castle: King e1->g1 (4->6). Rook h1->f1 (7->5).
+                    // Long Castle: King e1->c1 (4->2). Rook a1->d1 (0->3).
+                    const isShort = col > piecePosition.col;
+                    const rookSrcCol = isShort ? 7 : 0;
+                    const rookDstCol = isShort ? 5 : 3;
+                    const row = piecePosition.row; // 0
+
+                    setScenario(prev => ({
+                        ...prev,
+                        friendlies: prev.friendlies.map(p =>
+                            (p.row === row && p.col === rookSrcCol && p.type === 'rook')
+                                ? { ...p, col: rookDstCol }
+                                : p
+                        )
+                    }));
                 } else {
                     setMessage(`+ ${pointsEarned}${bonusText} ${remaining} left!`);
                 }
