@@ -189,9 +189,26 @@ export default function LessonScreen() {
                     friendlies.push({ row: 0, col: 0, type: 'rook' }); // a1 Rook
                     hint = "Long Castle! Move King 2 steps left. 🏰";
                 } else if (currentRound >= 5) {
-                    // Capture
-                    piecePos = { row: 3, col: 3 };
-                    enemies.push({ row: 4, col: 4 });
+                    // Capture - Randomized
+                    let attempts = 0;
+                    while (attempts < 20) {
+                        const r = Math.floor(Math.random() * 6) + 1;
+                        const c = Math.floor(Math.random() * 6) + 1;
+                        const offsets = [{ r: 1, c: 0 }, { r: -1, c: 0 }, { r: 0, c: 1 }, { r: 0, c: -1 }, { r: 1, c: 1 }, { r: 1, c: -1 }, { r: -1, c: 1 }, { r: -1, c: -1 }];
+                        const dir = offsets[Math.floor(Math.random() * offsets.length)];
+                        const eR = r + dir.r;
+                        const eC = c + dir.c;
+                        if (eR >= 0 && eR < 8 && eC >= 0 && eC < 8) {
+                            piecePos = { row: r, col: c };
+                            enemies.push({ row: eR, col: eC });
+                            break;
+                        }
+                        attempts++;
+                    }
+                    if (enemies.length === 0) {
+                        piecePos = { row: 3, col: 3 };
+                        enemies.push({ row: 4, col: 4 });
+                    }
                     hint = "Kings can capture too! 👑";
                 } else {
                     piecePos = { row: 3, col: 3 };
@@ -211,10 +228,37 @@ export default function LessonScreen() {
                     friendlies.push({ row: piecePos.row + dir.r * 2, col: piecePos.col + dir.c * 2, type: 'pawn' });
                     hint = "You can't move through friends! Stop before them. 🛑";
                 } else if (currentRound >= 3) {
-                    // Sliding Pieces Capture Practice
-                    const dirs = piece === 'bishop' ? [{ r: 1, c: 1 }] : piece === 'rook' ? [{ r: 1, c: 0 }] : [{ r: 1, c: 1 }];
-                    const dir = dirs[0];
-                    enemies.push({ row: piecePos.row + dir.r * 2, col: piecePos.col + dir.c * 2 });
+                    // Randomized Capture Scenario
+                    let attempts = 0;
+                    // Reset enemies/friendlies in case of retry? (They are arrays, but new scenario creates new arrays)
+                    // Actually, generateScenario returns new objects. The arrays here are local to function.
+                    while (attempts < 20) {
+                        const r = Math.floor(Math.random() * 6) + 1;
+                        const c = Math.floor(Math.random() * 6) + 1;
+
+                        let validDirs = [];
+                        if (piece === 'bishop' || piece === 'queen') validDirs.push({ r: 1, c: 1 }, { r: 1, c: -1 }, { r: -1, c: 1 }, { r: -1, c: -1 });
+                        if (piece === 'rook' || piece === 'queen') validDirs.push({ r: 1, c: 0 }, { r: -1, c: 0 }, { r: 0, c: 1 }, { r: 0, c: -1 });
+
+                        const dir = validDirs[Math.floor(Math.random() * validDirs.length)];
+                        const dist = 1 + Math.floor(Math.random() * 3);
+
+                        const eR = r + dir.r * dist;
+                        const eC = c + dir.c * dist;
+
+                        if (eR >= 0 && eR < 8 && eC >= 0 && eC < 8) {
+                            piecePos = { row: r, col: c };
+                            enemies.push({ row: eR, col: eC });
+                            break;
+                        }
+                        attempts++;
+                    }
+                    if (enemies.length === 0) {
+                        // Fallback
+                        piecePos = { row: 3, col: 3 };
+                        const fallbackDir = piece === 'bishop' ? { r: 1, c: 1 } : { r: 0, c: 1 };
+                        enemies.push({ row: piecePos.row + fallbackDir.r * 2, col: piecePos.col + fallbackDir.c * 2 });
+                    }
                     hint = "Slide and Capture! 🚀";
                 }
                 break;
