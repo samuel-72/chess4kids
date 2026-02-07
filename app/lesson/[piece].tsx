@@ -635,7 +635,7 @@ export default function LessonScreen() {
                 <SafeAreaView style={styles.safeArea} edges={['top', 'bottom', 'left', 'right']}>
                     <View style={styles.header}>
                         <Pressable onPress={onBack} style={styles.backButton} hitSlop={20}>
-                            <Text style={styles.backButtonText}>← Back</Text>
+                            <Text style={[styles.backButtonText, { fontSize: 24 }]}>←</Text>
                         </Pressable>
                         <View style={styles.scoreContainer}>
                             <Text style={styles.scoreLabel}>Score</Text>
