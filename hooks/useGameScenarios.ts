@@ -7,6 +7,7 @@ export type Scenario = {
     enemies: Position[];
     friendlies: { row: number; col: number; type: PieceType }[];
     enPassantTarget?: string;
+    enPassantArrow?: { from: Position; to: Position };  // visual arrow showing the double-move
     hint?: string;
 };
 
@@ -40,6 +41,11 @@ export function useGameScenarios(piece: PieceType) {
                     const targetPos = { row: 5, col: 4 };
                     enPassantTarget = positionToSquare(targetPos);
                     hint = "En Passant! The enemy pawn just jumped 2 steps! 👻";
+                    return {
+                        piecePos, enemies, friendlies, enPassantTarget,
+                        enPassantArrow: { from: { row: 6, col: 4 }, to: { row: 4, col: 4 } },
+                        hint,
+                    };
                 } else {
                     piecePos = { row: 1 + Math.floor(Math.random() * 5), col: Math.floor(Math.random() * 8) };
                     if (currentRound > 1 && Math.random() > 0.6) {

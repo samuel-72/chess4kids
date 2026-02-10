@@ -10,6 +10,7 @@ import { PIECE_IMAGES } from '../../constants/pieces';
 import { Scenario } from '../../hooks/useGameScenarios';
 import { getPieceScale } from '../../utils/pieceScaling';
 import CelebrationOverlay from '../CelebrationOverlay';
+import { EnPassantArrow } from '../EnPassantArrow';
 import { PieceType, GameMode } from '../../types/chess';
 
 interface LessonGameProps {
@@ -47,7 +48,7 @@ export const LessonGame: React.FC<LessonGameProps> = ({
     gameMode
 }) => {
     const pieceInfo = PIECE_INFO[piece];
-    const { piecePos: piecePosition, enemies, friendlies, enPassantTarget } = scenario;
+    const { piecePos: piecePosition, enemies, friendlies, enPassantTarget, enPassantArrow } = scenario;
 
     const [boardSize, setBoardSize] = useState(DEFAULT_BOARD_SIZE);
     const squareSize = boardSize / 8;
@@ -189,6 +190,14 @@ export const LessonGame: React.FC<LessonGameProps> = ({
                                                     </View>
                                                 );
                                             })}
+                                            {/* En passant arrow overlay */}
+                                            {enPassantArrow && (
+                                                <EnPassantArrow
+                                                    from={enPassantArrow.from}
+                                                    to={enPassantArrow.to}
+                                                    squareSize={squareSize}
+                                                />
+                                            )}
                                         </View>
                                         <View style={[styles.rankColumn, { height: boardSize }]} />
                                     </View>
