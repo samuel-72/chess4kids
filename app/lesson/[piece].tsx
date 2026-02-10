@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { PieceType } from '../../stores/progressStore';
+import { PieceType, GameMode } from '../../types/chess';
 import { useGameScenarios } from '../../hooks/useGameScenarios';
 import { useGameLogic } from '../../hooks/useGameLogic';
 import { LessonModeSelect } from '../../components/lesson/LessonModeSelect';
 import { LessonComplete } from '../../components/lesson/LessonComplete';
 import { LessonGame } from '../../components/lesson/LessonGame';
-
-type GameMode = 'practice' | 'fastest_finger';
 
 export default function LessonScreen() {
     const router = useRouter();
@@ -33,6 +31,7 @@ export default function LessonScreen() {
         showCelebration,
         lessonComplete,
         surpriseReward,
+        starRating,
         handleSquareTap
     } = useGameLogic(piece, gameMode, generateScenario);
 
@@ -41,7 +40,7 @@ export default function LessonScreen() {
     }
 
     if (lessonComplete) {
-        return <LessonComplete reward={surpriseReward} onBack={onBack} />;
+        return <LessonComplete reward={surpriseReward} score={starRating} onBack={onBack} />;
     }
 
     return (

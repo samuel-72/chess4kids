@@ -25,6 +25,7 @@ export function useGameLogic(
     const [surpriseReward, setSurpriseReward] = useState(SURPRISE_REWARDS[0]);
     const [message, setMessage] = useState<string>('');
     const [messageType, setMessageType] = useState<'success' | 'hint' | 'error'>('hint');
+    const [starRating, setStarRating] = useState(3);
 
     const [timer, setTimer] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
@@ -90,6 +91,7 @@ export function useGameLogic(
 
         const timeSpent = Math.floor((Date.now() - startTime.current) / 1000);
         const stars = wrongGuesses.size === 0 ? 3 : wrongGuesses.size < 3 ? 2 : 1;
+        setStarRating(stars);
 
         if (gameMode === 'fastest_finger') {
             if (!bestTime || timer < bestTime) {
@@ -219,6 +221,7 @@ export function useGameLogic(
         showCelebration,
         lessonComplete,
         surpriseReward,
+        starRating,
         timer,
         handleSquareTap,
         // Expose setters if absolutely needed by UI (e.g. board size is UI state, not game state)
