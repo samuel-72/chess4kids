@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "export": "expo export -p web",
     "predeploy": "npm run export",
-    "deploy": "gh-pages -d dist"
+    "deploy": "gh-pages -d dist",
+    "test": "jest --env=node"
   },
   "dependencies": {
     "@expo/metro-runtime": "~6.1.2",
@@ -33,8 +34,19 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^13.3.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.1.0",
+    "babel-jest": "^30.2.0",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "babel-plugin-rewrite-require": "^1.14.5",
+    "babel-preset-expo": "^54.0.10",
     "gh-pages": "^6.3.0",
+    "jest": "^30.2.0",
+    "jest-expo": "^54.0.17",
+    "react-native-worklets": "^0.7.2",
+    "react-test-renderer": "^19.2.4",
+    "ts-jest": "^29.4.6",
     "typescript": "~5.9.2"
   },
   "private": true
