@@ -1,4 +1,4 @@
-import { PieceType } from '../stores/progressStore';
+import { PieceType } from '../types/chess';
 
 export type Square = string; // e.g., "A1", "D4", "H8"
 export type Position = { row: number; col: number }; // 0-indexed, row 0 = rank 1
@@ -133,25 +133,13 @@ export function getValidMoves(
                 }
             }
 
-            // CASTLING (Lesson Simplified: Assumes start pos = unmoved)
-            // White King Start: e1 (Row 0, Col 4) - Wait, standard is Row 0??
-            // My board: Rank 1 is usually Row 0 or Row 7?
-            // squareToPosition('e1') -> 'e' is col 4. '1' is row?
-            // Let's check `squareToPosition`.
-            // Default usually: 'a'->0, '1'->0.
-            // But my previous Pawn logic (from.row === 1 -> Rank 2) implies Row 0 is Rank 1.
-            // So White King @ e1 is Row 0, Col 4.
+            // Castling (simplified for lessons — assumes king is unmoved at E1)
             if (from.row === 0 && from.col === 4) {
-                // Short Castle (King side) -> Target g1 (Row 0, Col 6)
-                // Needs Empty f1 (0,5) and g1 (0,6). Rook at h1 (0,7).
-                // And checks? (Ignoring for lesson simplicity).
-                if (isEmpty(0, 5) && isEmpty(0, 6) && isFriendly(0, 7)) { // Rook is friendly!
-                    // Strictly, check if piece at (0,7) is Rook? The caller (Lessons) ensures setup.
+                // Short castle: King → G1, needs F1+G1 empty, Rook at H1
+                if (isEmpty(0, 5) && isEmpty(0, 6) && isFriendly(0, 7)) {
                     validMoves.push(positionToSquare({ row: 0, col: 6 }));
                 }
-
-                // Long Castle (Queen side) -> Target c1 (Row 0, Col 2)
-                // Needs Empty b1 (0,1), c1 (0,2), d1 (0,3). Rook at a1 (0,0).
+                // Long castle: King → C1, needs B1+C1+D1 empty, Rook at A1
                 if (isEmpty(0, 1) && isEmpty(0, 2) && isEmpty(0, 3) && isFriendly(0, 0)) {
                     validMoves.push(positionToSquare({ row: 0, col: 2 }));
                 }

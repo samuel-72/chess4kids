@@ -52,19 +52,43 @@ If you want to contribute or build the app yourself:
 
     This will start the development server. Scan the QR code with the **Expo Go** app on your phone, or press `w` to run in a web browser.
 
-4.  **Testing**:
-    Since there are no automated tests yet, testing involves:
-    -   Running the app locally (`npx expo start`).
-    -   Verifying lessons work as expected.
-    -   Checking move validation logic in `utils/chessLogic.ts`.
+4.  **Run tests**:
+    ```bash
+    npm test
+    ```
+    This runs the Jest test suite (34 tests) covering:
+    - Move validation for all 6 pieces (pawn, knight, bishop, rook, queen, king)
+    - Special moves: en passant, short/long castling
+    - Edge cases: blocking by friendlies, captures, board boundaries
+    - Piece scaling utilities
 
 ### 📂 Project Structure
 
-- **`app/`**: Application screens and navigation (Expo Router).
-- **`components/`**: Reusable UI elements (Board, Pieces, Overlays).
-- **`utils/`**: Core game logic (Move validation, En Passant, Castling).
-- **`stores/`**: State management (Zustand) for User and Progress.
-- **`assets/`**: Images and sounds.
+```
+chess-kids/
+├── app/                    # Screens & navigation (Expo Router)
+│   └── lesson/[piece].tsx  # Controller: orchestrates lesson flow
+├── components/
+│   └── lesson/
+│       ├── LessonModeSelect.tsx  # Mode selection screen
+│       ├── LessonGame.tsx        # Board, HUD, gestures
+│       └── LessonComplete.tsx    # Completion/reward screen
+├── hooks/
+│   ├── useGameScenarios.ts # Lesson curriculum & scenario generation
+│   └── useGameLogic.ts     # Game state, scoring, move handling
+├── utils/
+│   ├── chessLogic.ts       # Move validation engine
+│   ├── pieceScaling.ts     # Visual scaling per piece type
+│   └── __tests__/          # Unit tests (Jest + ts-jest)
+├── types/
+│   └── chess.ts            # Shared types (PieceType, GameMode)
+├── constants/
+│   ├── gameData.ts         # PIECE_INFO, REWARDS, REAL_PIECES
+│   └── theme.ts            # Design tokens
+├── stores/
+│   └── progressStore.ts    # Zustand state (user progress)
+└── assets/                 # Images and sounds
+```
 
 ## 🌐 Web Distribution
 
