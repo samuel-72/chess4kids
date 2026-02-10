@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Dimensions, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
@@ -196,7 +196,7 @@ const CONFETTI_COLORS = ['#FF6B6B', '#FFD93D', '#6BCB77', '#4D96FF', '#FF85B3', 
 
 // ─── Main Component ───
 interface LessonCompleteProps {
-    reward: { emoji: string; name: string };
+    reward: { emoji: string; name: string; image?: any };
     score?: number;       // 1-3 stars
     onBack: () => void;
 }
@@ -206,6 +206,7 @@ export const LessonComplete: React.FC<LessonCompleteProps> = ({
     score = 3,
     onBack,
 }) => {
+    // ... hooks ...
     const rewardScale = useSharedValue(0);
     const rewardRotate = useSharedValue(0);
     const titleOpacity = useSharedValue(0);
@@ -214,6 +215,7 @@ export const LessonComplete: React.FC<LessonCompleteProps> = ({
     const buttonScale = useSharedValue(0);
     const glowScale = useSharedValue(0.8);
 
+    // ... sparkles and confetti hooks ...
     // Sparkles
     const sparkles = useMemo<Sparkle[]>(() => {
         const s: Sparkle[] = [];
@@ -241,7 +243,7 @@ export const LessonComplete: React.FC<LessonCompleteProps> = ({
     }, []);
 
     useEffect(() => {
-        // Phase 1: Reward emoji drops in with bounce (0ms)
+        // Phase 1: Reward drops in with bounce (0ms)
         rewardScale.value = withSpring(1, { damping: 5, stiffness: 80, mass: 1.2 });
         rewardRotate.value = withSequence(
             withTiming(-0.15, { duration: 150 }),
@@ -314,9 +316,17 @@ export const LessonComplete: React.FC<LessonCompleteProps> = ({
                 {/* Glowing orb behind reward */}
                 <Animated.View style={[styles.glowOrb, glowStyle]} />
 
-                {/* Reward emoji */}
+                {/* Reward Image or Emoji */}
                 <Animated.View style={rewardStyle}>
-                    <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
+                    {reward.image ? (
+                        <Image
+                            source={reward.image}
+                            style={{ width: 180, height: 180 }}
+                            resizeMode="contain"
+                        />
+                    ) : (
+                        <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
+                    )}
                 </Animated.View>
 
                 {/* Star rating */}

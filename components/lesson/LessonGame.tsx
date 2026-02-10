@@ -25,7 +25,7 @@ interface LessonGameProps {
     onSquareTap: (row: number, col: number) => void;
     onBack: () => void;
     showCelebration: boolean;
-    surpriseReward: { emoji: string; name: string };
+    surpriseReward: { emoji: string; name: string; image?: any };
     gameMode: GameMode;
 }
 
@@ -229,7 +229,7 @@ export const LessonGame: React.FC<LessonGameProps> = ({
                     </View>
                 </SafeAreaView>
 
-                <CelebrationOverlay visible={showCelebration} message={`${surpriseReward.emoji} ${surpriseReward.name} `} />
+                <CelebrationOverlay visible={showCelebration} rewardImage={surpriseReward.image} />
             </LinearGradient>
         </GestureHandlerRootView>
     );

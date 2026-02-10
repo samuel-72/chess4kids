@@ -11,11 +11,11 @@ export const PIECE_INFO: Record<PieceType, { emoji: string; name: string; color:
 };
 
 export const SURPRISE_REWARDS = [
-    { emoji: '🍫', name: 'Chocolate Bar!' },
-    { emoji: '🦄', name: 'Magical Unicorn!' },
-    { emoji: '🦕', name: 'Friendly Dinosaur!' },
-    { emoji: '🎁', name: 'Mystery Gift!' },
-    { emoji: '👑', name: 'Golden Crown!' },
+    { emoji: '🍫', name: 'Chocolate Bar!', image: require('../assets/rewards/chocolate.png') },
+    { emoji: '🦄', name: 'Magical Unicorn!', image: require('../assets/rewards/unicorn.png') },
+    { emoji: '🦕', name: 'Friendly Dinosaur!', image: require('../assets/rewards/dinosaur.png') },
+    { emoji: '🎁', name: 'Mystery Gift!', image: require('../assets/rewards/gift.png') },
+    { emoji: '👑', name: 'Golden Crown!', image: require('../assets/rewards/crown.png') },
 ];
 
 export const REAL_PIECES: Record<PieceType, ImageSourcePropType> = {
